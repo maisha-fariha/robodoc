@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "148155478497",
+    "project_id": "robodoc-894cb",
+    "storage_bucket": "robodoc-894cb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148155478497:android:bd413c147edd7074e962a0",
+        "android_client_info": {
+          "package_name": "com.encoderit.robodoc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAMz2GRaCCsiNlVkzf2lVQh2pxqWY7ToM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

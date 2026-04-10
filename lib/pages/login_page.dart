@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
+import '../widgets/focus_fill_text_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,30 +19,37 @@ class _LoginPageState extends State<LoginPage> {
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
 
   bool _obscurePassword = true;
   bool _rememberMe = false;
-
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final auth = Get.find<AuthController>();
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Row(
                 children: [
                   Container(
@@ -86,31 +95,48 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 32),
               _FieldLabel('EMAIL ADDRESS'),
               const SizedBox(height: 10),
-              TextFormField(
+              FocusFillTextField(
                 controller: _emailController,
+                focusNode: _emailFocus,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.username, AutofillHints.email],
-                decoration: const InputDecoration(
-                  hintText: 'Enter your email address',
-                ),
+                hintText: 'Enter your email address',
+                baseFillColor: const Color(0xFFEFEFEF),
+                focusedFillColor: _secondary.withValues(alpha: 0.12),
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+                validator: (v) {
+                  final value = (v ?? '').trim();
+                  if (value.isEmpty) return 'Email is required';
+                  if (!AuthController.isValidEmail(value)) return 'Enter a valid email';
+                  return null;
+                },
               ),
               const SizedBox(height: 22),
-                  _FieldLabel('PASSWORD'),
+              _FieldLabel('PASSWORD'),
               const SizedBox(height: 10),
-              TextFormField(
+              FocusFillTextField(
                 controller: _passwordController,
+                focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
                 autofillHints: const [AutofillHints.password],
-                decoration: InputDecoration(
-                  hintText: 'Enter your password',
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: _obscurePassword ? Colors.black.withValues(alpha: 0.55) : _secondary,
-                    ),
-                    tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                hintText: 'Enter your password',
+                baseFillColor: const Color(0xFFEFEFEF),
+                focusedFillColor: _secondary.withValues(alpha: 0.12),
+                textInputAction: TextInputAction.done,
+                validator: (v) {
+                  final value = (v ?? '');
+                  if (value.isEmpty) return 'Password is required';
+                  if (value.length < 6) return 'Minimum 6 characters';
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: Colors.black.withValues(alpha: 0.55),
                   ),
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
                 ),
               ),
               const SizedBox(height: 10),
@@ -165,8 +191,19 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: ElevatedButton(
-                  onPressed: () {},
+                child: Obx(() {
+                  final loading = auth.isLoading.value;
+                  return ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () {
+                            final ok = _formKey.currentState?.validate() ?? false;
+                            if (!ok) return;
+                            auth.signInWithEmail(
+                              email: _emailController.text,
+                              password: _passwordController.text,
+                            );
+                          },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primary,
                     foregroundColor: Colors.white,
@@ -174,11 +211,21 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(50),
                     ),
                   ),
-                  child: const Text(
-                    'Log In',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                ),
+                  child: loading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Log In',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                        ),
+                  );
+                }),
               ),
               const SizedBox(height: 26),
               Row(
@@ -281,7 +328,8 @@ class _LoginPageState extends State<LoginPage> {
                               ],
                             ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

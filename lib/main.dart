@@ -1,11 +1,19 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'firebase_options.dart';
+import 'controllers/auth_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp( MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -16,6 +24,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Get.put(AuthController(), permanent: true);
     return GetMaterialApp(
       title: 'RoboDoc',
       theme: ThemeData(
@@ -61,7 +70,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       getPages: AppPages.routes,
-      initialRoute: AppRoutes.login,
+      initialRoute: auth.isLoggedIn ? AppRoutes.home : AppRoutes.login,
     );
   }
 }
