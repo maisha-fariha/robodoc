@@ -35,11 +35,21 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   get: ^4.6.6
+  get_it: ^7.7.0
   firebase_core: ^4.6.0
   firebase_auth: ^6.3.0
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
   crypto: ^3.0.6
+  # Both packages are required: gems_data_layer sources import gems_core (e.g. BaseRepository).
+  # Same layout as flutter_gems/pubspec.yaml — without gems_core, iOS/Android compile fails.
+  gems_data_layer:
+    path: flutter_gems/packages/gems_data_layer
+  gems_core:
+    path: flutter_gems/packages/gems_core
+
+# gems_core pins package_info_plus ^5, which pulls web <0.5; Firebase Auth needs web ^1.0.
+# Newer package_info_plus aligns with web 1.x (override applies only to this app, not flutter_gems).
+dependency_overrides:
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

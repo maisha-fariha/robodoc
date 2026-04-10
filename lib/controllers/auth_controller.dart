@@ -1,15 +1,20 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+
 import '../routes/app_routes.dart';
-import '../services/database_service.dart';
 import '../services/local_auth_service.dart';
 
 class AuthController extends GetxController {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseService _db = DatabaseService();
-  late final LocalAuthService _localAuth;
+  AuthController({
+    required FirebaseAuth auth,
+    required LocalAuthService localAuth,
+  })  : _auth = auth,
+        _localAuth = localAuth;
+
+  final FirebaseAuth _auth;
+  final LocalAuthService _localAuth;
   late final Future<void> _localReady;
 
   final Rxn<User> user = Rxn<User>();
@@ -20,18 +25,14 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _localAuth = LocalAuthService(_db);
-    _localReady = _initLocal();
+    _localReady = _restoreOfflineSessionIfNeeded();
     user.value = _auth.currentUser;
     _auth.authStateChanges().listen((u) {
       user.value = u;
     });
   }
 
-  Future<void> _initLocal() async {
-    await _db.initialize(boxName: 'robodoc_database');
-    await _localAuth.initialize();
-
+  Future<void> _restoreOfflineSessionIfNeeded() async {
     final sessionEmail = _localAuth.sessionEmail;
     if (sessionEmail != null && _auth.currentUser == null) {
       final u = await _localAuth.getUserByEmail(sessionEmail);
