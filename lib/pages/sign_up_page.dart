@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
+import '../widgets/focus_fill_text_field.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -24,6 +26,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
 
+  final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agree = false;
@@ -44,15 +47,18 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final auth = Get.find<AuthController>();
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Row(
                 children: [
                   Container(
@@ -101,18 +107,24 @@ class _SignUpPageState extends State<SignUpPage> {
                  children: [
                    const _FieldLabel('FULL NAME'),
                    const SizedBox(height: 8),
-                   _FocusFillTextField(
+                   FocusFillTextField(
                      controller: _fullNameController,
                      focusNode: _fullNameFocus,
                      hintText: 'Enter your Full Name',
                      baseFillColor: const Color(0xFFEFEFEF),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _emailFocus.requestFocus(),
+                     validator: (v) {
+                       final value = (v ?? '').trim();
+                       if (value.isEmpty) return 'Full name is required';
+                       if (value.length < 2) return 'Enter a valid name';
+                       return null;
+                     },
                    ),
                    const SizedBox(height: 14),
                    const _FieldLabel('EMAIL ADDRESS'),
                    const SizedBox(height: 8),
-                   _FocusFillTextField(
+                   FocusFillTextField(
                      controller: _emailController,
                      focusNode: _emailFocus,
                      hintText: 'Enter your Email Address',
@@ -120,11 +132,17 @@ class _SignUpPageState extends State<SignUpPage> {
                      baseFillColor: const Color(0xFFEFEFEF),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+                     validator: (v) {
+                       final value = (v ?? '').trim();
+                       if (value.isEmpty) return 'Email is required';
+                       if (!AuthController.isValidEmail(value)) return 'Enter a valid email';
+                       return null;
+                     },
                    ),
                    const SizedBox(height: 14),
                    const _FieldLabel('PASSWORD'),
                    const SizedBox(height: 8),
-                   _FocusFillTextField(
+                   FocusFillTextField(
                      controller: _passwordController,
                      focusNode: _passwordFocus,
                      hintText: 'Enter your Password',
@@ -132,33 +150,45 @@ class _SignUpPageState extends State<SignUpPage> {
                      baseFillColor: const Color(0xFFEFEFEF),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
+                     validator: (v) {
+                       final value = (v ?? '');
+                       if (value.isEmpty) return 'Password is required';
+                       if (value.length < 6) return 'Minimum 6 characters';
+                       return null;
+                     },
                      suffixIcon: IconButton(
                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                        icon: Icon(
                          _obscurePassword
                              ? Icons.visibility_off_outlined
                              : Icons.visibility_outlined,
-                         color: _obscurePassword ? Colors.black.withValues(alpha: 0.55) : _secondary,
+                        color: Colors.black.withValues(alpha: 0.55),
                        ),
                      ),
                    ),
                    const SizedBox(height: 14),
                    const _FieldLabel('CONFIRM'),
                    const SizedBox(height: 8),
-                   _FocusFillTextField(
+                   FocusFillTextField(
                      controller: _confirmController,
                      focusNode: _confirmFocus,
                      hintText: 'Confirm your Password',
                      obscureText: _obscureConfirm,
                      baseFillColor: const Color(0xFFEFEFEF),
                      textInputAction: TextInputAction.done,
+                     validator: (v) {
+                       final value = (v ?? '');
+                       if (value.isEmpty) return 'Confirm your password';
+                       if (value != _passwordController.text) return 'Passwords do not match';
+                       return null;
+                     },
                      suffixIcon: IconButton(
                        onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                        icon: Icon(
                          _obscureConfirm
                              ? Icons.visibility_off_outlined
                              : Icons.visibility_outlined,
-                         color: _obscureConfirm ? Colors.black.withValues(alpha: 0.55) : _secondary,
+                        color: Colors.black.withValues(alpha: 0.55),
                        ),
                      ),
                    ),
@@ -217,8 +247,27 @@ class _SignUpPageState extends State<SignUpPage> {
                    SizedBox(
                      width: double.infinity,
                      height: 47,
-                     child: ElevatedButton(
-                       onPressed: () {},
+                     child: Obx(() {
+                       final loading = auth.isLoading.value;
+                       return ElevatedButton(
+                       onPressed: loading
+                           ? null
+                           : () {
+                               final ok = _formKey.currentState?.validate() ?? false;
+                               if (!ok) return;
+                               if (!_agree) {
+                                 Get.snackbar(
+                                   'Agreement required',
+                                   'Please accept Terms and Conditions and Privacy Protocol.',
+                                 );
+                                 return;
+                               }
+                               auth.signUpWithEmail(
+                                 fullName: _fullNameController.text,
+                                 email: _emailController.text,
+                                 password: _passwordController.text,
+                               );
+                             },
                        style: ElevatedButton.styleFrom(
                          backgroundColor: _primary,
                          foregroundColor: Colors.white,
@@ -226,11 +275,24 @@ class _SignUpPageState extends State<SignUpPage> {
                            borderRadius: BorderRadius.circular(50),
                          ),
                        ),
-                       child: const Text(
-                         'SIGN UP',
-                         style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2),
-                       ),
-                     ),
+                       child: loading
+                           ? const SizedBox(
+                               height: 18,
+                               width: 18,
+                               child: CircularProgressIndicator(
+                                 strokeWidth: 2.4,
+                                 color: Colors.white,
+                               ),
+                             )
+                           : const Text(
+                               'SIGN UP',
+                               style: TextStyle(
+                                 fontWeight: FontWeight.w900,
+                                 letterSpacing: 1.2,
+                               ),
+                             ),
+                       );
+                     }),
                    ),
                    const SizedBox(height: 12),
                    Center(
@@ -313,7 +375,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   ],
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -337,83 +400,3 @@ class _FieldLabel extends StatelessWidget {
     );
   }
 }
-
-class _FocusFillTextField extends StatefulWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String hintText;
-  final TextInputType? keyboardType;
-  final bool obscureText;
-  final Widget? suffixIcon;
-  final Color baseFillColor;
-  final TextInputAction? textInputAction;
-  final ValueChanged<String>? onFieldSubmitted;
-
-  const _FocusFillTextField({
-    required this.controller,
-    required this.focusNode,
-    required this.hintText,
-    required this.baseFillColor,
-    this.keyboardType,
-    this.obscureText = false,
-    this.suffixIcon,
-    this.textInputAction,
-    this.onFieldSubmitted,
-  });
-
-  @override
-  State<_FocusFillTextField> createState() => _FocusFillTextFieldState();
-}
-
-class _FocusFillTextFieldState extends State<_FocusFillTextField> {
-  @override
-  void initState() {
-    super.initState();
-    widget.focusNode.addListener(_onFocusChange);
-  }
-
-  @override
-  void didUpdateWidget(covariant _FocusFillTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.focusNode != widget.focusNode) {
-      oldWidget.focusNode.removeListener(_onFocusChange);
-      widget.focusNode.addListener(_onFocusChange);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.focusNode.removeListener(_onFocusChange);
-    super.dispose();
-  }
-
-  void _onFocusChange() => setState(() {});
-
-  @override
-  Widget build(BuildContext context) {
-    final isFocused = widget.focusNode.hasFocus;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextFormField(
-        controller: widget.controller,
-        focusNode: widget.focusNode,
-        keyboardType: widget.keyboardType,
-        obscureText: widget.obscureText,
-        textInputAction: widget.textInputAction,
-        onFieldSubmitted: widget.onFieldSubmitted,
-        decoration: InputDecoration(
-          hintText: widget.hintText,
-          filled: true,
-          fillColor: widget.baseFillColor,
-          suffixIcon: widget.suffixIcon,
-        ),
-      ),
-    );
-  }
-}
-
