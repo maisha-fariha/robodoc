@@ -65,7 +65,7 @@ class AuthController extends GetxController {
           .timeout(const Duration(seconds: 7));
       isOfflineSession.value = false;
       localUser.value = null;
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.assessment);
     } on FirebaseAuthException catch (e) {
       // Offline fallback on network failures.
       if (_shouldTryOffline(e)) {
@@ -74,7 +74,7 @@ class AuthController extends GetxController {
           final u = await _localAuth.signInOffline(email: email, password: password);
           localUser.value = u;
           isOfflineSession.value = true;
-          Get.offAllNamed(AppRoutes.home);
+          Get.offAllNamed(AppRoutes.assessment);
           Get.snackbar('Offline login', 'You are logged in using local data.');
           return;
         } on LocalAuthException catch (le) {
@@ -89,7 +89,7 @@ class AuthController extends GetxController {
         final u = await _localAuth.signInOffline(email: email, password: password);
         localUser.value = u;
         isOfflineSession.value = true;
-        Get.offAllNamed(AppRoutes.home);
+        Get.offAllNamed(AppRoutes.assessment);
         Get.snackbar('Offline login', 'No internet. Logged in using local data.');
       } on LocalAuthException catch (le) {
         Get.snackbar('Offline login failed', _localMessage(le));
@@ -102,7 +102,7 @@ class AuthController extends GetxController {
           final u = await _localAuth.signInOffline(email: email, password: password);
           localUser.value = u;
           isOfflineSession.value = true;
-          Get.offAllNamed(AppRoutes.home);
+          Get.offAllNamed(AppRoutes.assessment);
           Get.snackbar('Offline login', 'You are logged in using local data.');
           return;
         } on LocalAuthException catch (le) {
