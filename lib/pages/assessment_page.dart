@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 
+import '../routes/app_routes.dart';
+import 'results_page.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
 
@@ -1506,7 +1509,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Results screen
+                final result = _analyzeAnswers();
+                Get.toNamed(AppRoutes.results, arguments: result);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
@@ -1520,6 +1524,92 @@ class _AssessmentPageState extends State<AssessmentPage> {
           ),
         ],
       ),
+    );
+  }
+
+  AssessmentResult _analyzeAnswers() {
+    final age = int.tryParse(_ageController.text.trim()) ?? 0;
+    final symptomsRaw = _symptomsController.text.trim();
+    final symptoms = symptomsRaw.toLowerCase();
+
+    final hasFever = _quickAdds.contains('Fever') ||
+        _physicalMarkers.contains('Fever') ||
+        symptoms.contains('fever');
+    final hasCough = _quickAdds.contains('Cough') ||
+        _physicalMarkers.contains('Cough') ||
+        symptoms.contains('cough');
+    final hasHeadache = _quickAdds.contains('Headache') ||
+        _physicalMarkers.contains('Headache') ||
+        symptoms.contains('headache');
+    final hasFatigue = _quickAdds.contains('Fatigue') ||
+        _physicalMarkers.contains('Fatigue') ||
+        symptoms.contains('fatigue');
+
+    int riskPoints = 0;
+    riskPoints += hasFever ? 18 : 0;
+    riskPoints += hasCough ? 14 : 0;
+    riskPoints += hasHeadache ? 10 : 0;
+    riskPoints += hasFatigue ? 10 : 0;
+    riskPoints += _travelInternational == true ? 12 : 0;
+    riskPoints += (_painIntensity >= 7) ? 10 : 0;
+    riskPoints += (_exactDays >= 7) ? 6 : 0;
+    riskPoints += (age >= 60) ? 8 : 0;
+    riskPoints += (_antibiotics == true) ? 2 : 0;
+
+    final confidence = (60 + riskPoints).clamp(55, 92);
+
+    String indication = 'Possible Viral Fever';
+    String icd = 'ICD-10: J10.1';
+    if (hasCough && !hasFever) {
+      indication = 'Upper Respiratory Infection';
+      icd = 'ICD-10: J06.9';
+    }
+    if ((_painIntensity >= 8) && symptoms.contains('chest')) {
+      indication = 'Chest Pain (Needs Evaluation)';
+      icd = 'ICD-10: R07.9';
+    }
+
+    final temp = hasFever ? 101 : 98;
+    final hr = (hasFever ? 96 : 84) + (_painIntensity >= 7 ? 6 : 0);
+    final spo2 = hasCough ? 97 : 98;
+
+    final shortSymptom = symptomsRaw.isEmpty
+        ? 'your reported symptoms'
+        : (symptomsRaw.length > 120 ? '${symptomsRaw.substring(0, 120)}…' : symptomsRaw);
+
+    final summary =
+        'Based on the details provided (${_exactDays.round()} days, intensity ${_painIntensity.round()}/10), '
+        'the symptom pattern suggests a likely acute process. This is not a diagnosis.\n\n'
+        'Summary: $shortSymptom';
+
+    final suggestions = <ResultSuggestion>[
+      const ResultSuggestion(
+        icon: Icons.water_drop_rounded,
+        title: 'Optimal Hydration',
+        description: 'Increase fluid intake and consider oral rehydration if needed.',
+      ),
+      const ResultSuggestion(
+        icon: Icons.bed_rounded,
+        title: 'Mandatory Rest',
+        description: 'Reduce activity for 24–48 hours and prioritize sleep.',
+      ),
+      const ResultSuggestion(
+        icon: Icons.thermostat_rounded,
+        title: 'Thermal Control',
+        description: 'Monitor temperature and use comfort measures as needed.',
+      ),
+    ];
+
+    return AssessmentResult(
+      headline: 'Your results are\nready',
+      possibleIndication: indication,
+      summary: summary,
+      icdCode: icd,
+      confidence: confidence,
+      temperatureF: temp,
+      heartRate: hr,
+      spo2: spo2,
+      suggestions: suggestions,
     );
   }
 }
