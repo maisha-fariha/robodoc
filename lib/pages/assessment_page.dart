@@ -23,6 +23,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final _symptomsController = TextEditingController();
   final FocusNode _symptomsFocus = FocusNode();
   final Set<String> _quickAdds = {};
+  String? _durationPreset; // 'hours' | 'days' | 'week' | 'month'
+  double _exactDays = 14;
 
   @override
   void dispose() {
@@ -107,6 +109,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 children: [
                   _buildStep1(context),
                   _buildStep2(context),
+                  _buildStep3(context),
                 ],
               ),
             ),
@@ -483,7 +486,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
-                // Placeholder for future steps
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
@@ -503,6 +509,237 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 color: Colors.black.withValues(alpha: 0.45),
                 fontWeight: FontWeight.w700,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    Widget durationTile({
+      required String id,
+      required String title,
+      required IconData icon,
+    }) {
+      final selected = _durationPreset == id;
+      return Expanded(
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => setState(() => _durationPreset = id),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              height: 140,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected ? _secondary.withValues(alpha: 0.9) : Colors.transparent,
+                  width: 1.2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, color: _primary.withValues(alpha: 0.9)),
+                  const Spacer(),
+                  Text(
+                    title,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How long have you been feeling this?',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+              letterSpacing: -0.4,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              durationTile(id: 'hours', title: 'A few hours', icon: Icons.schedule_rounded),
+              const SizedBox(width: 14),
+              durationTile(id: 'days', title: 'A few days', icon: Icons.calendar_month_rounded),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              durationTile(id: 'week', title: 'Over a week', icon: Icons.calendar_today_rounded),
+              const SizedBox(width: 14),
+              durationTile(id: 'month', title: 'More than a\nmonth', icon: Icons.event_repeat_rounded),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Exact duration',
+                            style: textTheme.titleLarge?.copyWith(
+                              color: Colors.black.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Fine-tune the timeline',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _secondary.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            _exactDays.round().toString(),
+                            style:  TextStyle(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'DAYS',
+                            style: TextStyle(
+                              color: Colors.black.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    activeTrackColor: _primary,
+                    inactiveTrackColor: Colors.black.withValues(alpha: 0.10),
+                    thumbColor: _primary,
+                    overlayColor: _primary.withValues(alpha: 0.10),
+                  ),
+                  child: Slider(
+                    value: _exactDays,
+                    min: 1,
+                    max: 30,
+                    divisions: 29,
+                    onChanged: (v) => setState(() => _exactDays = v),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '1 DAY',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '15 DAYS',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '30+ DAYS',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                // Placeholder for Step 4+
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Next', style: TextStyle(fontWeight: FontWeight.w900)),
+                  const SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_rounded, color: Colors.white.withValues(alpha: 0.9)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              'Information provided is part of the RoboDoc assessment protocol.',
+              style: textTheme.bodySmall?.copyWith(
+                color: Colors.black.withValues(alpha: 0.35),
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
