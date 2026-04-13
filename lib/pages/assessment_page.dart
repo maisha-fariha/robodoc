@@ -25,6 +25,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Set<String> _quickAdds = {};
   String? _durationPreset; // 'hours' | 'days' | 'week' | 'month'
   double _exactDays = 14;
+  double _painIntensity = 7;
+  final Set<String> _physicalMarkers = {};
+  bool? _travelInternational; // null = not selected, true/false
+  bool? _antibiotics; // null = not selected, true/false
 
   @override
   void dispose() {
@@ -87,7 +91,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   Text(
                     'Step $_currentStep/$_totalSteps',
                     style: textTheme.labelLarge?.copyWith(
-                      color: Colors.black.withValues(alpha: 0.6),
+                      color: _currentStep == _totalSteps
+                          ? _secondary
+                          : Colors.black.withValues(alpha: 0.6),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -110,6 +116,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   _buildStep1(context),
                   _buildStep2(context),
                   _buildStep3(context),
+                  _buildStep4(context),
+                  _buildStep5(context),
+                  _buildStep6(context),
+                  _buildStep7(context),
                 ],
               ),
             ),
@@ -159,7 +169,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               SizedBox(
-                width: 80,
+                width: 60,
                 child: TextField(
                   controller: _ageController,
                   focusNode: _ageFocus,
@@ -168,14 +178,14 @@ class _AssessmentPageState extends State<AssessmentPage> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(3),
                   ],
-                  style: textTheme.displayMedium?.copyWith(
+                  style: textTheme.displaySmall?.copyWith(
                     color: Colors.black.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1.2,
                   ),
                   decoration: InputDecoration(
                     hintText: '00',
-                    hintStyle: textTheme.displayMedium?.copyWith(
+                    hintStyle: textTheme.displaySmall?.copyWith(
                       color: Colors.black.withValues(alpha: 0.15),
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1.2,
@@ -285,12 +295,12 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
               ),
               child: const Text(
                 'Continue',
-                style: TextStyle(fontWeight: FontWeight.w900),
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
               ),
             ),
           ),
@@ -495,20 +505,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
               ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Center(
-            child: Text(
-              'Save for later',
-              style: textTheme.bodySmall?.copyWith(
-                color: Colors.black.withValues(alpha: 0.45),
-                fontWeight: FontWeight.w700,
-              ),
+              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
             ),
           ),
         ],
@@ -712,19 +712,22 @@ class _AssessmentPageState extends State<AssessmentPage> {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
-                // Placeholder for Step 4+
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Next', style: TextStyle(fontWeight: FontWeight.w900)),
+                  const Text('Next', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                   const SizedBox(width: 8),
                   Icon(Icons.arrow_forward_rounded, color: Colors.white.withValues(alpha: 0.9)),
                 ],
@@ -735,11 +738,784 @@ class _AssessmentPageState extends State<AssessmentPage> {
           Center(
             child: Text(
               'Information provided is part of the RoboDoc assessment protocol.',
-              style: textTheme.bodySmall?.copyWith(
-                color: Colors.black.withValues(alpha: 0.35),
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.black.withValues(alpha: 0.45),
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep4(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final symptomTitle = _quickAdds.isNotEmpty
+        ? _quickAdds.first
+        : (_symptomsController.text.trim().isEmpty
+            ? 'Symptoms'
+            : _symptomsController.text.trim().split(RegExp(r'[,.]')).first);
+    final startedDays = _exactDays.round().clamp(1, 365);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How severe are your symptoms?',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+              letterSpacing: -0.4,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Currently assessing',
+            style: textTheme.bodyMedium?.copyWith(
+              color: Colors.black.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.medical_services_rounded,
+                    color: _secondary.withValues(alpha: 0.95),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        symptomTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black.withValues(alpha: 0.85),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Started: $startedDays days ago',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Text(
+                'Pain Intensity',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black.withValues(alpha: 0.85),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                _painIntensity.round().toString().padLeft(2, '0'),
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: _primary,
+                ),
+              ),
+              Text(
+                '/10',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              activeTrackColor: _secondary.withValues(alpha: 0.95),
+              inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
+              thumbColor: _secondary,
+              overlayColor: _secondary.withValues(alpha: 0.12),
+            ),
+            child: Slider(
+              value: _painIntensity,
+              min: 0,
+              max: 10,
+              divisions: 10,
+              onChanged: (v) => setState(() => _painIntensity = v),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'SUBTLE',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                Text(
+                  'DISTRESSING',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                Text(
+                  'UNBEARABLE',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          _DetailCard(
+            icon: Icons.nights_stay_rounded,
+            title: 'Sleep Impact',
+            description:
+                'Unable to find a comfortable position; waking up multiple times.',
+            onModify: () {},
+            accent: _secondary,
+          ),
+          const SizedBox(height: 14),
+          _DetailCard(
+            icon: Icons.directions_walk_rounded,
+            title: 'Daily Function',
+            description:
+                'Mobility is limited but self-care remains possible with caution.',
+            onModify: () {},
+            accent: _secondary,
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              'SAVE PROGRESS',
+              style: textTheme.labelMedium?.copyWith(
+                color: Colors.black.withValues(alpha: 0.45),
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep5(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    const markers = <String>['Fever', 'Cough', 'Headache', 'Fatigue'];
+
+    Widget markerRow(String label) {
+      final selected = _physicalMarkers.contains(label);
+      return Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (selected) {
+                _physicalMarkers.remove(label);
+              } else {
+                _physicalMarkers.add(label);
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: selected
+                          ? _secondary.withValues(alpha: 0.9)
+                          : Colors.black.withValues(alpha: 0.25),
+                      width: 1.4,
+                    ),
+                    color: selected ? _secondary.withValues(alpha: 0.18) : Colors.transparent,
+                  ),
+                  child: selected
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: _secondary.withValues(alpha: 0.95),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DIAGNOSTIC INTAKE',
+            style: textTheme.labelLarge?.copyWith(
+              color: Colors.black.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'A few more questions...',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+              letterSpacing: -0.4,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.monitor_heart_outlined,
+                      color: Colors.black.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Physical Markers',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...markers.expand((m) sync* {
+                  yield markerRow(m);
+                  if (m != markers.last) yield const SizedBox(height: 10);
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _secondary.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _secondary.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  ),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.black.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'RoboDoc Assistant',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: _primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Your data is encrypted end-to- end. These markers help our clinical engine provide a more precise diagnostic overview.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: _primary.withValues(alpha: 0.9),
+                          height: 1.25,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep6(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    Widget choiceButton({
+      required String label,
+      required bool value,
+    }) {
+      final selected = _travelInternational == value;
+      return Expanded(
+        child: SizedBox(
+          height: 42,
+          child: TextButton(
+            onPressed: () => setState(() => _travelInternational = value),
+            style: TextButton.styleFrom(
+              backgroundColor: selected ? _primary : Colors.transparent,
+              foregroundColor:
+                  selected ? Colors.white : Colors.black.withValues(alpha: 0.65),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DIAGNOSTIC INTAKE',
+            style: textTheme.labelLarge?.copyWith(
+              color: Colors.black.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'A few more questions...',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+              letterSpacing: -0.4,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.public_rounded, color: Colors.black.withValues(alpha: 0.7)),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Travel History',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Have you traveled internationally in the last 14 days?',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    height: 1.2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                  ),
+                  child: Row(
+                    children: [
+                      choiceButton(label: 'No', value: false),
+                      const SizedBox(width: 6),
+                      choiceButton(label: 'Yes', value: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _secondary.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _secondary.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  ),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.black.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'RoboDoc Assistant',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: _primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Your data is encrypted end-to-end. These markers help our clinical engine provide a more precise diagnostic overview.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: _primary.withValues(alpha: 0.7),
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep7(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    Widget choiceButton({
+      required String label,
+      required bool value,
+    }) {
+      final selected = _antibiotics == value;
+      return Expanded(
+        child: SizedBox(
+          height: 42,
+          child: TextButton(
+            onPressed: () => setState(() => _antibiotics = value),
+            style: TextButton.styleFrom(
+              backgroundColor: selected ? _primary : Colors.transparent,
+              foregroundColor:
+                  selected ? Colors.white : Colors.black.withValues(alpha: 0.65),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DIAGNOSTIC INTAKE',
+            style: textTheme.labelLarge?.copyWith(
+              color: Colors.black.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'A few more questions...',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.05,
+              letterSpacing: -0.4,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.medication_rounded, color: Colors.black.withValues(alpha: 0.7)),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Antibiotics',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Are you currently taking any prescribed antibiotics?',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    height: 1.2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                  ),
+                  child: Row(
+                    children: [
+                      choiceButton(label: 'No', value: false),
+                      const SizedBox(width: 6),
+                      choiceButton(label: 'Yes', value: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 25),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _secondary.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _secondary.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  ),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.black.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'RoboDoc Assistant',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: _primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Your data is encrypted end-to-end. These markers help our clinical engine provide a more precise diagnostic overview.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: _primary.withValues(alpha: 0.7),
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 25),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                // TODO: Results screen
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: const Text('See Results', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
             ),
           ),
         ],
@@ -862,6 +1638,100 @@ class _OptionCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DetailCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final VoidCallback onModify;
+  final Color accent;
+
+  const _DetailCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.onModify,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: Colors.black.withValues(alpha: 0.8)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: onModify,
+                  child: Text(
+                    'Modify detail',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
