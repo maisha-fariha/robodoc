@@ -77,7 +77,7 @@ class MyApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       getPages: AppPages.routes,
-      initialRoute: auth.isLoggedIn ? AppRoutes.home : AppRoutes.login,
+      initialRoute: auth.isLoggedIn ? AppRoutes.assessment : AppRoutes.login,
     );
   }
 }

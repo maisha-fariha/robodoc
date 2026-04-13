@@ -9,6 +9,7 @@ class FocusFillTextField extends StatefulWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final Color baseFillColor;
+  final Color focusedFillColor;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
   final String? Function(String?)? validator;
@@ -20,6 +21,7 @@ class FocusFillTextField extends StatefulWidget {
     required this.focusNode,
     required this.hintText,
     required this.baseFillColor,
+    required this.focusedFillColor,
     this.keyboardType,
     this.autofillHints,
     this.obscureText = false,
@@ -60,8 +62,6 @@ class _FocusFillTextFieldState extends State<FocusFillTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final isFocused = widget.focusNode.hasFocus;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
@@ -81,6 +81,9 @@ class _FocusFillTextFieldState extends State<FocusFillTextField> {
         decoration: InputDecoration(
           hintText: widget.hintText,
           filled: true,
+          fillColor: widget.focusNode.hasFocus
+              ? widget.focusedFillColor
+              : widget.baseFillColor,
           suffixIcon: widget.suffixIcon,
         ),
       ),

@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
 
 import '../pages/home_page.dart';
+import '../pages/assessment_page.dart';
 import '../pages/login_page.dart';
+import '../pages/results_page.dart';
 import '../pages/sign_up_page.dart';
 import 'app_routes.dart';
 
@@ -18,6 +20,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.home,
       page: () => const HomePage(),
+    ),
+    GetPage(
+      name: AppRoutes.assessment,
+      page: () => const AssessmentPage(),
+    ),
+    GetPage(
+      name: AppRoutes.results,
+      page: () => const ResultsPage(),
     ),
   ];
 }

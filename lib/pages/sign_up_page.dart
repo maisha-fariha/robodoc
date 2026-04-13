@@ -112,6 +112,7 @@ class _SignUpPageState extends State<SignUpPage> {
                      focusNode: _fullNameFocus,
                      hintText: 'Enter your Full Name',
                      baseFillColor: const Color(0xFFEFEFEF),
+                     focusedFillColor: _secondary.withValues(alpha: 0.12),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _emailFocus.requestFocus(),
                      validator: (v) {
@@ -130,6 +131,7 @@ class _SignUpPageState extends State<SignUpPage> {
                      hintText: 'Enter your Email Address',
                      keyboardType: TextInputType.emailAddress,
                      baseFillColor: const Color(0xFFEFEFEF),
+                     focusedFillColor: _secondary.withValues(alpha: 0.12),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                      validator: (v) {
@@ -148,6 +150,7 @@ class _SignUpPageState extends State<SignUpPage> {
                      hintText: 'Enter your Password',
                      obscureText: _obscurePassword,
                      baseFillColor: const Color(0xFFEFEFEF),
+                     focusedFillColor: _secondary.withValues(alpha: 0.12),
                      textInputAction: TextInputAction.next,
                      onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
                      validator: (v) {
@@ -175,6 +178,7 @@ class _SignUpPageState extends State<SignUpPage> {
                      hintText: 'Confirm your Password',
                      obscureText: _obscureConfirm,
                      baseFillColor: const Color(0xFFEFEFEF),
+                     focusedFillColor: _secondary.withValues(alpha: 0.12),
                      textInputAction: TextInputAction.done,
                      validator: (v) {
                        final value = (v ?? '');

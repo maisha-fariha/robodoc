@@ -102,6 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                 autofillHints: const [AutofillHints.username, AutofillHints.email],
                 hintText: 'Enter your email address',
                 baseFillColor: const Color(0xFFEFEFEF),
+                focusedFillColor: _secondary.withValues(alpha: 0.12),
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                 validator: (v) {
@@ -121,6 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                 autofillHints: const [AutofillHints.password],
                 hintText: 'Enter your password',
                 baseFillColor: const Color(0xFFEFEFEF),
+                focusedFillColor: _secondary.withValues(alpha: 0.12),
                 textInputAction: TextInputAction.done,
                 validator: (v) {
                   final value = (v ?? '');
