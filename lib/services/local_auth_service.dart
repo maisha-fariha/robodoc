@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-
-import 'database_service.dart';
+import 'package:gems_data_layer/gems_data_layer.dart' show DatabaseService;
 
 class LocalAuthUser {
   final String email;
