@@ -33,6 +33,73 @@ class _AssessmentPageState extends State<AssessmentPage> {
   bool? _travelInternational; // null = not selected, true/false
   bool? _antibiotics; // null = not selected, true/false
 
+  Future<void> _goNext() {
+    return _pageController.nextPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _goBack() {
+    return _pageController.previousPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Widget _navRow({
+    required BuildContext context,
+    required String nextLabel,
+    VoidCallback? onNext,
+  }) {
+    final canGoBack = _currentStep > 1;
+
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: canGoBack ? _goBack : null,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text(
+                'Back',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _primary,
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: onNext ?? _goNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: Text(
+                nextLabel,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _ageController.dispose();
@@ -290,10 +357,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: () => _pageController.nextPage(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOut,
-              ),
+              onPressed: _goNext,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
@@ -494,26 +558,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
-          ),
+          _navRow(context: context, nextLabel: 'Continue'),
         ],
       ),
     );
@@ -710,33 +755,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Next', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, color: Colors.white.withValues(alpha: 0.9)),
-                ],
-              ),
-            ),
-          ),
+          _navRow(context: context, nextLabel: 'Next'),
           const SizedBox(height: 10),
           Center(
             child: Text(
@@ -929,26 +948,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             accent: _secondary,
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
-          ),
+          _navRow(context: context, nextLabel: 'Continue'),
           const SizedBox(height: 12),
           Center(
             child: Text(
@@ -1140,26 +1140,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
-          ),
+          _navRow(context: context, nextLabel: 'Continue'),
         ],
       ),
     );
@@ -1322,26 +1303,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
-          ),
+          _navRow(context: context, nextLabel: 'Continue'),
         ],
       ),
     );
@@ -1504,23 +1466,13 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 25),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                final result = _analyzeAnswers();
-                Get.toNamed(AppRoutes.results, arguments: result);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: const Text('See Results', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
+          _navRow(
+            context: context,
+            nextLabel: 'See Results',
+            onNext: () {
+              final result = _analyzeAnswers();
+              Get.toNamed(AppRoutes.results, arguments: result);
+            },
           ),
         ],
       ),
