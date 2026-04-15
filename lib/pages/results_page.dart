@@ -31,6 +31,7 @@ class ResultsPage extends StatelessWidget {
     }
 
     final textTheme = Theme.of(context).textTheme;
+    final riskUi = _riskUi(result.riskLevel);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -173,9 +174,9 @@ class ResultsPage extends StatelessWidget {
                               width: 190,
                               height: 190,
                               child: CircularProgressIndicator(
-                                value: (result.confidence.clamp(0, 100)) / 100.0,
+                                value: riskUi.progress,
                                 strokeWidth: 12,
-                                color: _secondary,
+                                color: riskUi.color,
                                 backgroundColor: Colors.white.withValues(alpha: 0.08),
                               ),
                             ),
@@ -183,7 +184,7 @@ class ResultsPage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'MOD',
+                                  result.riskLevel,
                                   style: textTheme.displaySmall?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
@@ -208,9 +209,9 @@ class ResultsPage extends StatelessWidget {
                     const SizedBox(height: 18),
                     Center(
                       child: Text(
-                        'Your risk profile is currently moderate. Monitor vitals every 4 hours.',
+                        result.riskSummary,
                         style: textTheme.titleMedium?.copyWith(
-                          color: _secondary.withValues(alpha: 0.95),
+                          color: riskUi.color.withValues(alpha: 0.95),
                           height: 1.35,
                           fontWeight: FontWeight.w500,
                         ),
@@ -277,6 +278,25 @@ class ResultsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _RiskUi {
+  final double progress;
+  final Color color;
+  const _RiskUi({required this.progress, required this.color});
+}
+
+_RiskUi _riskUi(String rawLevel) {
+  final level = rawLevel.toUpperCase().trim();
+  switch (level) {
+    case 'LOW':
+      return const _RiskUi(progress: 0.33, color: Color(0xFF5AD77A));
+    case 'HIGH':
+      return const _RiskUi(progress: 1.0, color: Color(0xFFFF6B6B));
+    case 'MOD':
+    default:
+      return const _RiskUi(progress: 0.66, color: Color(0xFF21CDC0));
   }
 }
 
