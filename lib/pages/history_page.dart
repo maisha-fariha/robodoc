@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../routes/app_routes.dart';
+import '../widgets/robodoc_bottom_nav.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -73,7 +74,7 @@ class HistoryPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const _BottomBar(selected: _NavTab.history),
+      bottomNavigationBar: const RoboDocBottomNav(selected: RoboDocTab.history),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -438,118 +439,6 @@ class _HistoryCard extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _NavTab { diagnosis, history, profile }
-
-class _BottomBar extends StatelessWidget {
-  final _NavTab selected;
-  const _BottomBar({required this.selected});
-
-  static const _primary = Color(0xFF0E204D);
-  static const _secondary = Color(0xFF21CDC0);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomItem(
-            icon: Icons.add_box_rounded,
-            label: 'DIAGNOSIS',
-            selected: selected == _NavTab.diagnosis,
-            onTap: () => Get.offAllNamed(AppRoutes.results),
-          ),
-          _BottomItem(
-            icon: Icons.history_rounded,
-            label: 'HISTORY',
-            selected: selected == _NavTab.history,
-            onTap: () => Get.offAllNamed(AppRoutes.history),
-          ),
-          _BottomItem(
-            icon: Icons.person_outline_rounded,
-            label: 'PROFILE',
-            selected: selected == _NavTab.profile,
-            onTap: () => Get.snackbar('Profile', 'Coming soon'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _pillIcon(IconData icon, bool selected) {
-    final color = selected ? _secondary : Colors.black.withValues(alpha: 0.4);
-    return Container(
-      width: 42,
-      height: 32,
-      decoration: BoxDecoration(
-        color: selected ? _secondary.withValues(alpha: 0.25) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: selected ? _primary : color),
-    );
-  }
-}
-
-class _BottomItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _BottomItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  static const _secondary = Color(0xFF21CDC0);
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? _secondary : Colors.black.withValues(alpha: 0.4);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 32,
-              decoration: BoxDecoration(
-                color: selected ? _secondary.withValues(alpha: 0.25) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: selected ? const Color(0xFF0E204D) : color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-                color: color,
               ),
             ),
           ],

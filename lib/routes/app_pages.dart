@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../pages/home_page.dart';
 import '../pages/history_page.dart';
+import '../pages/profile_page.dart';
 import '../pages/assessment_page.dart';
 import '../pages/login_page.dart';
 import '../pages/results_page.dart';
@@ -33,6 +34,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.history,
       page: () => const HistoryPage(),
+    ),
+    GetPage(
+      name: AppRoutes.profile,
+      page: () => const ProfilePage(),
     ),
   ];
 }
