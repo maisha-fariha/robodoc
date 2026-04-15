@@ -12,7 +12,20 @@
           "package_name": "com.encoderit.robodoc"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "148155478497-sh9mu6p2b2eqc2513s4hsoi2bv28hpug.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.encoderit.robodoc",
+            "certificate_hash": "5bf1ffa005c5ff5471fb0a2bdcf2ca25d691c9b4"
+          }
+        },
+        {
+          "client_id": "148155478497-jiok6qas32ggho675napc6f7i92pkfs1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDAMz2GRaCCsiNlVkzf2lVQh2pxqWY7ToM"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "148155478497-jiok6qas32ggho675napc6f7i92pkfs1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "148155478497-3k87snq7mc5rl7mqn32d43k8nkt8be8c.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.encoderit.robodoc"
+              }
+            }
+          ]
         }
       }
     }

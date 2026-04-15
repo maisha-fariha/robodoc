@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gems_data_layer/gems_data_layer.dart' show DatabaseService;
 import 'package:get_it/get_it.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../controllers/auth_controller.dart';
 import '../../services/local_auth_service.dart';
@@ -12,6 +13,10 @@ Future<void> setupAuthDomainServices() async {
 
   if (!getIt.isRegistered<FirebaseAuth>()) {
     getIt.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
+  }
+
+  if (!getIt.isRegistered<GoogleSignIn>()) {
+    getIt.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
   }
 
   if (!getIt.isRegistered<DatabaseService>()) {
@@ -29,6 +34,7 @@ Future<void> setupAuthDomainServices() async {
   DIHelper.registerController<AuthController>(
     factory: () => AuthController(
       auth: getIt<FirebaseAuth>(),
+      googleSignIn: getIt<GoogleSignIn>(),
       localAuth: getIt<LocalAuthService>(),
     ),
   );

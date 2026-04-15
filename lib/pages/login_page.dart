@@ -40,6 +40,16 @@ class _LoginPageState extends State<LoginPage> {
     final textTheme = Theme.of(context).textTheme;
     final auth = Get.find<AuthController>();
 
+    Future<void> openForgotPasswordDialog() async {
+      await Get.dialog<bool>(
+        _ForgotPasswordDialog(
+          initialEmail: _emailController.text.trim(),
+          onSend: (email) => auth.sendPasswordResetEmail(email: email),
+        ),
+        barrierDismissible: true,
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -170,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: openForgotPasswordDialog,
                     style: TextButton.styleFrom(
                       foregroundColor: _secondary,
                       padding: EdgeInsets.zero,
@@ -256,7 +266,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: _SocialButton(
                       icon: Icons.g_mobiledata_rounded,
                       label: 'Google',
-                      onPressed: () {},
+                      onPressed: auth.isLoading.value ? null : () => auth.signInWithGoogle(),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -354,10 +364,75 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
+class _ForgotPasswordDialog extends StatefulWidget {
+  final String initialEmail;
+  final Future<void> Function(String email) onSend;
+
+  const _ForgotPasswordDialog({
+    required this.initialEmail,
+    required this.onSend,
+  });
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  late final TextEditingController _emailCtrl;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailCtrl = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await widget.onSend(_emailCtrl.text);
+      if (mounted) Get.back(result: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reset password'),
+      content: TextField(
+        controller: _emailCtrl,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(
+          hintText: 'Enter your email',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Get.back(result: false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _send,
+          child: Text(_loading ? 'Sending...' : 'Send'),
+        ),
+      ],
+    );
+  }
+}
+
 class _SocialButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _SocialButton({
     required this.icon,
