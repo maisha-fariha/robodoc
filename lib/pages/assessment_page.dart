@@ -279,20 +279,6 @@ class _AssessmentPageState extends State<AssessmentPage> {
           'Robo Doc AI',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 34,
-                height: 34,
-                color: Colors.white.withValues(alpha: 0.12),
-                child: const Icon(Icons.person_rounded, size: 20),
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,

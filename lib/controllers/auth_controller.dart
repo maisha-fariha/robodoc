@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../routes/app_routes.dart';
 import '../services/local_auth_service.dart';
@@ -9,11 +10,14 @@ import '../services/local_auth_service.dart';
 class AuthController extends GetxController {
   AuthController({
     required FirebaseAuth auth,
+    required GoogleSignIn googleSignIn,
     required LocalAuthService localAuth,
   })  : _auth = auth,
+        _googleSignIn = googleSignIn,
         _localAuth = localAuth;
 
   final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
   final LocalAuthService _localAuth;
   late final Future<void> _localReady;
 
@@ -199,8 +203,76 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    isLoading.value = true;
+    try {
+      // Google sign-in requires network and can't be done offline.
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled.
+        return;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await _auth.signInWithCredential(credential);
+      user.value = _auth.currentUser;
+      isOfflineSession.value = false;
+      localUser.value = null;
+
+      Get.offAllNamed(AppRoutes.assessment);
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar('Google sign-in failed', _firebaseMessage(e));
+    } catch (e) {
+      Get.snackbar('Google sign-in failed', 'Please try again.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    final e = email.trim();
+    if (!isValidEmail(e)) {
+      Get.snackbar('Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      await _auth.sendPasswordResetEmail(email: e).timeout(const Duration(seconds: 7));
+      Get.snackbar(
+        'Reset link sent',
+        'Check your email for password reset instructions.',
+      );
+    } on FirebaseAuthException catch (ex) {
+      // Common: user-not-found (don’t leak too much info; keep UX simple).
+      final msg = ex.code == 'user-not-found'
+          ? 'If an account exists for that email, you’ll receive a reset link.'
+          : _firebaseMessage(ex);
+      Get.snackbar('Password reset', msg);
+    } on TimeoutException {
+      Get.snackbar('Password reset', 'Network timeout. Please try again.');
+    } catch (ex) {
+      if (_shouldTryOffline(ex)) {
+        Get.snackbar('Password reset', 'No internet connection. Please try again online.');
+      } else {
+        Get.snackbar('Password reset', 'Please try again.');
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // ignore
+    }
     try {
       await _localReady;
       await _localAuth.clearSession();

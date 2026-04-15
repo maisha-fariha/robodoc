@@ -298,6 +298,58 @@ class _SignUpPageState extends State<SignUpPage> {
                        );
                      }),
                    ),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          height: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'OR CONTINUE WITH',
+                          style: textTheme.labelMedium?.copyWith(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            letterSpacing: 2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 47,
+                    child: Obx(() {
+                      final loading = auth.isLoading.value;
+                      return OutlinedButton.icon(
+                        onPressed: loading ? null : () => auth.signInWithGoogle(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black.withValues(alpha: 0.85),
+                          side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          backgroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.g_mobiledata_rounded),
+                        label: const Text(
+                          'Google',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      );
+                    }),
+                  ),
                    const SizedBox(height: 12),
                    Center(
                      child: Wrap(
