@@ -1,1 +1,33 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"robodoc-894cb","appId":"1:148155478497:android:bd413c147edd7074e962a0","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"robodoc-894cb","appId":"1:148155478497:ios:6693134cf19acbdfe962a0","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"robodoc-894cb","configurations":{"android":"1:148155478497:android:bd413c147edd7074e962a0","ios":"1:148155478497:ios:6693134cf19acbdfe962a0"}}}}}}
+{
+  "functions": {
+    "source": "functions"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "robodoc-894cb",
+          "appId": "1:148155478497:android:bd413c147edd7074e962a0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "robodoc-894cb",
+          "appId": "1:148155478497:ios:6693134cf19acbdfe962a0",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "robodoc-894cb",
+          "configurations": {
+            "android": "1:148155478497:android:bd413c147edd7074e962a0",
+            "ios": "1:148155478497:ios:6693134cf19acbdfe962a0"
+          }
+        }
+      }
+    }
+  }
+}

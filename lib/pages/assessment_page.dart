@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../controllers/ai_assessment_controller.dart';
 import '../routes/app_routes.dart';
+import '../services/ai_assessment_service.dart';
 import 'results_page.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
@@ -32,6 +34,13 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Set<String> _physicalMarkers = {};
   bool? _travelInternational; // null = not selected, true/false
   bool? _antibiotics; // null = not selected, true/false
+  late final AiAssessmentController _aiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _aiController = Get.find<AiAssessmentController>();
+  }
 
   Future<void> _goNext() {
     return _pageController.nextPage(
@@ -1469,8 +1478,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
           _navRow(
             context: context,
             nextLabel: 'See Results',
-            onNext: () {
-              final result = _analyzeAnswers();
+            onNext: () async {
+              final result = await _analyzeAnswers();
               Get.toNamed(AppRoutes.results, arguments: result);
             },
           ),
@@ -1479,7 +1488,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
     );
   }
 
-  AssessmentResult _analyzeAnswers() {
+  Future<AssessmentResult> _analyzeAnswers() async {
     final age = int.tryParse(_ageController.text.trim()) ?? 0;
     final symptomsRaw = _symptomsController.text.trim();
     final symptoms = symptomsRaw.toLowerCase();
@@ -1552,7 +1561,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
       ),
     ];
 
-    return AssessmentResult(
+    final localResult = AssessmentResult(
       headline: 'Your results are\nready',
       possibleIndication: indication,
       summary: summary,
@@ -1562,6 +1571,40 @@ class _AssessmentPageState extends State<AssessmentPage> {
       heartRate: hr,
       spo2: spo2,
       suggestions: suggestions,
+    );
+
+    final aiResponse = await _aiController.generate(
+      AiAssessmentPayload(
+        age: age,
+        sexAtBirth: _sexAtBirth ?? '',
+        symptoms: symptomsRaw,
+        quickAdds: _quickAdds.toList(),
+        durationDays: _exactDays.round(),
+        painIntensity: _painIntensity.round(),
+        physicalMarkers: _physicalMarkers.toList(),
+        travelInternational: _travelInternational,
+        takingAntibiotics: _antibiotics,
+      ),
+    );
+
+    if (aiResponse == null) {
+      final error = _aiController.errorMessage.value;
+      if (error != null && error.isNotEmpty) {
+        Get.snackbar('AI unavailable', '$error Showing local assessment.');
+      }
+      return localResult;
+    }
+
+    return AssessmentResult(
+      headline: localResult.headline,
+      possibleIndication: aiResponse.possibleIndication,
+      summary: aiResponse.summary,
+      icdCode: aiResponse.icdCode,
+      confidence: aiResponse.confidence,
+      temperatureF: localResult.temperatureF,
+      heartRate: localResult.heartRate,
+      spo2: localResult.spo2,
+      suggestions: localResult.suggestions,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import '../di/ai/ai_di.dart';
 import '../di/auth/auth_di.dart';
 
 /// App-wide dependency injection using get_it (same pattern as flutter_gems).
@@ -8,6 +9,7 @@ class AppServices {
 
   Future<void> initialize() async {
     await setupAuthDomainServices();
+    await setupAiDomainServices();
   }
 
   /// Reset all registrations (e.g. tests).
