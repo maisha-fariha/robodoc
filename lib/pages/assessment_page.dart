@@ -6,7 +6,6 @@ import '../controllers/ai_assessment_controller.dart';
 import '../controllers/assessment_controller.dart';
 import '../routes/app_routes.dart';
 import '../services/ai_assessment_service.dart';
-import 'results_page.dart';
 import '../models/assessment_result.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
@@ -33,10 +32,11 @@ class _AssessmentPageState extends State<AssessmentPage> {
   String? _durationPreset; // 'hours' | 'days' | 'week' | 'month'
   double _exactDays = 14;
   double _painIntensity = 7;
-  final Set<String> _physicalMarkers = {};
-  bool? _travelInternational; // null = not selected, true/false
-  bool? _antibiotics; // null = not selected, true/false
   late final AiAssessmentController _aiController;
+  final Map<int, DynamicQuestion> _dynamicQuestions = {};
+  final Map<int, dynamic> _dynamicAnswers = {};
+  final Map<int, TextEditingController> _dynamicTextControllers = {};
+  bool _isGeneratingDynamicQuestion = false;
 
   @override
   void initState() {
@@ -56,6 +56,74 @@ class _AssessmentPageState extends State<AssessmentPage> {
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOut,
     );
+  }
+
+  Map<String, dynamic> _staticAnswerContext() {
+    return {
+      'age': int.tryParse(_ageController.text.trim()) ?? 0,
+      'sexAtBirth': _sexAtBirth ?? '',
+      'symptoms': _symptomsController.text.trim(),
+      'quickAdds': _quickAdds.toList(),
+      'durationDays': _exactDays.round(),
+      'painIntensity': _painIntensity.round(),
+    };
+  }
+
+  List<Map<String, dynamic>> _dynamicAnswerContext() {
+    return [5, 6, 7]
+        .where((step) => _dynamicQuestions.containsKey(step))
+        .map((step) {
+          final q = _dynamicQuestions[step]!;
+          return {
+            'step': step,
+            'questionId': q.id,
+            'question': q.title,
+            'answer': _dynamicAnswers[step],
+            'inputType': q.inputType,
+          };
+        })
+        .toList();
+  }
+
+  DynamicQuestion _fallbackQuestion(int stepNumber) {
+    return DynamicQuestion(
+      id: 'q$stepNumber',
+      title: 'Please provide more details (step $stepNumber)',
+      description: 'Add any important symptom details that may help triage.',
+      inputType: 'text',
+      options: const [],
+      placeholder: 'Type your answer',
+    );
+  }
+
+  Future<void> _ensureDynamicQuestion(int stepNumber) async {
+    if (_dynamicQuestions.containsKey(stepNumber)) return;
+
+    setState(() {
+      _isGeneratingDynamicQuestion = true;
+    });
+
+    final question = await _aiController.generateQuestion(
+      stepNumber: stepNumber,
+      staticAnswers: _staticAnswerContext(),
+      previousDynamicAnswers: _dynamicAnswerContext(),
+    );
+
+    setState(() {
+      _dynamicQuestions[stepNumber] = question ?? _fallbackQuestion(stepNumber);
+      _isGeneratingDynamicQuestion = false;
+    });
+  }
+
+  bool _validateDynamicAnswer(int stepNumber) {
+    final question = _dynamicQuestions[stepNumber];
+    if (question == null) return false;
+    final answer = _dynamicAnswers[stepNumber];
+    final ok = answer != null && answer.toString().trim().isNotEmpty;
+    if (!ok) {
+      Get.snackbar('Answer required', 'Please answer this question to continue.');
+    }
+    return ok;
   }
 
   Widget _navRow({
@@ -118,6 +186,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
     _pageController.dispose();
     _symptomsController.dispose();
     _symptomsFocus.dispose();
+    for (final c in _dynamicTextControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -569,7 +640,16 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          _navRow(context: context, nextLabel: 'Continue'),
+          _navRow(
+            context: context,
+            nextLabel: 'Continue',
+            onNext: () async {
+              await _ensureDynamicQuestion(5);
+              if (mounted) {
+                await _goNext();
+              }
+            },
+          ),
         ],
       ),
     );
@@ -977,375 +1057,36 @@ class _AssessmentPageState extends State<AssessmentPage> {
   }
 
   Widget _buildStep5(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    const markers = <String>['Fever', 'Cough', 'Headache', 'Fatigue'];
-
-    Widget markerRow(String label) {
-      final selected = _physicalMarkers.contains(label);
-      return Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              if (selected) {
-                _physicalMarkers.remove(label);
-              } else {
-                _physicalMarkers.add(label);
-              }
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: selected
-                          ? _secondary.withValues(alpha: 0.9)
-                          : Colors.black.withValues(alpha: 0.25),
-                      width: 1.4,
-                    ),
-                    color: selected ? _secondary.withValues(alpha: 0.18) : Colors.transparent,
-                  ),
-                  child: selected
-                      ? Icon(
-                          Icons.check_rounded,
-                          size: 16,
-                          color: _secondary.withValues(alpha: 0.95),
-                        )
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'DIAGNOSTIC INTAKE',
-            style: textTheme.labelLarge?.copyWith(
-              color: Colors.black.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'A few more questions...',
-            style: textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-              letterSpacing: -0.4,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.monitor_heart_outlined,
-                      color: Colors.black.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Physical Markers',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...markers.expand((m) sync* {
-                  yield markerRow(m);
-                  if (m != markers.last) yield const SizedBox(height: 10);
-                }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _secondary.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: _secondary.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                  ),
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    color: Colors.black.withValues(alpha: 0.75),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RoboDoc Assistant',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: _primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Your data is encrypted end-to- end. These markers help our clinical engine provide a more precise diagnostic overview.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: _primary.withValues(alpha: 0.9),
-                          height: 1.25,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _navRow(context: context, nextLabel: 'Continue'),
-        ],
-      ),
-    );
+    return _buildDynamicStep(context, 5);
   }
 
   Widget _buildStep6(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    Widget choiceButton({
-      required String label,
-      required bool value,
-    }) {
-      final selected = _travelInternational == value;
-      return Expanded(
-        child: SizedBox(
-          height: 42,
-          child: TextButton(
-            onPressed: () => setState(() => _travelInternational = value),
-            style: TextButton.styleFrom(
-              backgroundColor: selected ? _primary : Colors.transparent,
-              foregroundColor:
-                  selected ? Colors.white : Colors.black.withValues(alpha: 0.65),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'DIAGNOSTIC INTAKE',
-            style: textTheme.labelLarge?.copyWith(
-              color: Colors.black.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'A few more questions...',
-            style: textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              height: 1.05,
-              letterSpacing: -0.4,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.public_rounded, color: Colors.black.withValues(alpha: 0.7)),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Travel History',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Have you traveled internationally in the last 14 days?',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    height: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                  ),
-                  child: Row(
-                    children: [
-                      choiceButton(label: 'No', value: false),
-                      const SizedBox(width: 6),
-                      choiceButton(label: 'Yes', value: true),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _secondary.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: _secondary.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                  ),
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    color: Colors.black.withValues(alpha: 0.75),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RoboDoc Assistant',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: _primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Your data is encrypted end-to-end. These markers help our clinical engine provide a more precise diagnostic overview.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: _primary.withValues(alpha: 0.7),
-                          height: 1.2,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _navRow(context: context, nextLabel: 'Continue'),
-        ],
-      ),
-    );
+    return _buildDynamicStep(context, 6);
   }
 
   Widget _buildStep7(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    return _buildDynamicStep(context, 7);
+  }
 
-    Widget choiceButton({
-      required String label,
-      required bool value,
-    }) {
-      final selected = _antibiotics == value;
-      return Expanded(
-        child: SizedBox(
-          height: 42,
-          child: TextButton(
-            onPressed: () => setState(() => _antibiotics = value),
-            style: TextButton.styleFrom(
-              backgroundColor: selected ? _primary : Colors.transparent,
-              foregroundColor:
-                  selected ? Colors.white : Colors.black.withValues(alpha: 0.65),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+  Widget _buildDynamicStep(BuildContext context, int stepNumber) {
+    final textTheme = Theme.of(context).textTheme;
+    final question = _dynamicQuestions[stepNumber];
+
+    if (question == null || _isGeneratingDynamicQuestion) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            Text(
+              'Generating follow-up question...',
+              style: textTheme.bodyLarge?.copyWith(
+                color: Colors.black.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
               ),
             ),
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-          ),
+          ],
         ),
       );
     }
@@ -1365,7 +1106,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
           ),
           const SizedBox(height: 10),
           Text(
-            'A few more questions...',
+            'Step $stepNumber question',
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w600,
               height: 1.05,
@@ -1384,103 +1125,40 @@ class _AssessmentPageState extends State<AssessmentPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.medication_rounded, color: Colors.black.withValues(alpha: 0.7)),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Antibiotics',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
                 Text(
-                  'Are you currently taking any prescribed antibiotics?',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    height: 1.2,
+                  question.title,
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
+                    color: Colors.black.withValues(alpha: 0.85),
                   ),
                 ),
+                if (question.description.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    question.description,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-                  ),
-                  child: Row(
-                    children: [
-                      choiceButton(label: 'No', value: false),
-                      const SizedBox(width: 6),
-                      choiceButton(label: 'Yes', value: true),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 25),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _secondary.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: _secondary.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                  ),
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    color: Colors.black.withValues(alpha: 0.75),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RoboDoc Assistant',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: _primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Your data is encrypted end-to-end. These markers help our clinical engine provide a more precise diagnostic overview.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: _primary.withValues(alpha: 0.7),
-                          height: 1.2,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildDynamicInput(context, stepNumber, question),
               ],
             ),
           ),
           const SizedBox(height: 25),
           _navRow(
             context: context,
-            nextLabel: 'See Results',
+            nextLabel: stepNumber == 7 ? 'See Results' : 'Continue',
             onNext: () async {
+              if (!_validateDynamicAnswer(stepNumber)) return;
+              if (stepNumber < 7) {
+                await _ensureDynamicQuestion(stepNumber + 1);
+                if (mounted) await _goNext();
+                return;
+              }
               final result = await _analyzeAnswers();
               Get.toNamed(AppRoutes.results, arguments: result);
             },
@@ -1490,10 +1168,69 @@ class _AssessmentPageState extends State<AssessmentPage> {
     );
   }
 
+  Widget _buildDynamicInput(
+    BuildContext context,
+    int stepNumber,
+    DynamicQuestion question,
+  ) {
+    final currentValue = _dynamicAnswers[stepNumber];
+    switch (question.inputType) {
+      case 'dropdown':
+      case 'single_select':
+        final options = question.options;
+        final selected = options.contains(currentValue) ? currentValue as String? : null;
+        if (question.inputType == 'dropdown') {
+          return DropdownButtonFormField<String>(
+            initialValue: selected,
+            items: options
+                .map((o) => DropdownMenuItem<String>(value: o, child: Text(o)))
+                .toList(),
+            decoration: const InputDecoration(
+              hintText: 'Select one option',
+            ),
+            onChanged: (v) => setState(() => _dynamicAnswers[stepNumber] = v),
+          );
+        }
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: options.map((o) {
+            final isSelected = currentValue == o;
+            return ChoiceChip(
+              label: Text(o),
+              selected: isSelected,
+              onSelected: (_) => setState(() => _dynamicAnswers[stepNumber] = o),
+              selectedColor: _secondary.withValues(alpha: 0.25),
+              backgroundColor: Colors.black.withValues(alpha: 0.03),
+            );
+          }).toList(),
+        );
+      case 'number':
+      case 'text':
+      default:
+        final controller = _dynamicTextControllers.putIfAbsent(
+          stepNumber,
+          () => TextEditingController(text: currentValue?.toString() ?? ''),
+        );
+        return TextField(
+          controller: controller,
+          keyboardType:
+              question.inputType == 'number' ? TextInputType.number : TextInputType.text,
+          onChanged: (v) => _dynamicAnswers[stepNumber] = v,
+          decoration: InputDecoration(
+            hintText: question.placeholder,
+          ),
+        );
+    }
+  }
+
   Future<AssessmentResult> _analyzeAnswers() async {
     final age = int.tryParse(_ageController.text.trim()) ?? 0;
     final symptomsRaw = _symptomsController.text.trim();
     final symptoms = symptomsRaw.toLowerCase();
+    final dynamicAnswerText = _dynamicAnswerContext()
+        .map((e) => (e['answer'] ?? '').toString().toLowerCase())
+        .join(' ');
 
     // Persist key demographics so Profile can be dynamic.
     Get.find<AssessmentController>().setFromAssessment(
@@ -1502,28 +1239,28 @@ class _AssessmentPageState extends State<AssessmentPage> {
     );
 
     final hasFever = _quickAdds.contains('Fever') ||
-        _physicalMarkers.contains('Fever') ||
-        symptoms.contains('fever');
+        symptoms.contains('fever') ||
+        dynamicAnswerText.contains('fever');
     final hasCough = _quickAdds.contains('Cough') ||
-        _physicalMarkers.contains('Cough') ||
-        symptoms.contains('cough');
+        symptoms.contains('cough') ||
+        dynamicAnswerText.contains('cough');
     final hasHeadache = _quickAdds.contains('Headache') ||
-        _physicalMarkers.contains('Headache') ||
-        symptoms.contains('headache');
+        symptoms.contains('headache') ||
+        dynamicAnswerText.contains('headache');
     final hasFatigue = _quickAdds.contains('Fatigue') ||
-        _physicalMarkers.contains('Fatigue') ||
-        symptoms.contains('fatigue');
+        symptoms.contains('fatigue') ||
+        dynamicAnswerText.contains('fatigue');
 
     int riskPoints = 0;
     riskPoints += hasFever ? 18 : 0;
     riskPoints += hasCough ? 14 : 0;
     riskPoints += hasHeadache ? 10 : 0;
     riskPoints += hasFatigue ? 10 : 0;
-    riskPoints += _travelInternational == true ? 12 : 0;
+    riskPoints += dynamicAnswerText.contains('travel') ? 8 : 0;
     riskPoints += (_painIntensity >= 7) ? 10 : 0;
     riskPoints += (_exactDays >= 7) ? 6 : 0;
     riskPoints += (age >= 60) ? 8 : 0;
-    riskPoints += (_antibiotics == true) ? 2 : 0;
+    riskPoints += dynamicAnswerText.contains('antibiotic') ? 2 : 0;
 
     final confidence = (60 + riskPoints).clamp(55, 92);
 
@@ -1589,9 +1326,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
         quickAdds: _quickAdds.toList(),
         durationDays: _exactDays.round(),
         painIntensity: _painIntensity.round(),
-        physicalMarkers: _physicalMarkers.toList(),
-        travelInternational: _travelInternational,
-        takingAntibiotics: _antibiotics,
+        physicalMarkers: const [],
+        travelInternational: null,
+        takingAntibiotics: null,
+        dynamicAnswers: _dynamicAnswerContext(),
       ),
     );
 

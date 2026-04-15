@@ -32,4 +32,28 @@ class AiAssessmentController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<DynamicQuestion?> generateQuestion({
+    required int stepNumber,
+    required Map<String, dynamic> staticAnswers,
+    required List<Map<String, dynamic>> previousDynamicAnswers,
+  }) async {
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      return await _service.generateDynamicQuestion(
+        stepNumber: stepNumber,
+        staticAnswers: staticAnswers,
+        previousDynamicAnswers: previousDynamicAnswers,
+      );
+    } catch (e) {
+      final message = e.toString();
+      errorMessage.value = message.isEmpty
+          ? 'Unable to generate follow-up question right now.'
+          : message;
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

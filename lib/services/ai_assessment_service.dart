@@ -13,6 +13,7 @@ class AiAssessmentPayload {
   final List<String> physicalMarkers;
   final bool? travelInternational;
   final bool? takingAntibiotics;
+  final List<Map<String, dynamic>> dynamicAnswers;
 
   const AiAssessmentPayload({
     required this.age,
@@ -24,6 +25,7 @@ class AiAssessmentPayload {
     required this.physicalMarkers,
     required this.travelInternational,
     required this.takingAntibiotics,
+    this.dynamicAnswers = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -36,7 +38,38 @@ class AiAssessmentPayload {
         'physicalMarkers': physicalMarkers,
         'travelInternational': travelInternational,
         'takingAntibiotics': takingAntibiotics,
+        'dynamicAnswers': dynamicAnswers,
       };
+}
+
+class DynamicQuestion {
+  final String id;
+  final String title;
+  final String description;
+  final String inputType; // dropdown | single_select | text | number
+  final List<String> options;
+  final String placeholder;
+
+  const DynamicQuestion({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.inputType,
+    required this.options,
+    required this.placeholder,
+  });
+
+  factory DynamicQuestion.fromMap(Map<dynamic, dynamic> map) {
+    final optionsRaw = map['options'] as List<dynamic>? ?? const [];
+    return DynamicQuestion(
+      id: (map['id'] as String?) ?? 'q',
+      title: (map['title'] as String?) ?? 'Follow-up question',
+      description: (map['description'] as String?) ?? '',
+      inputType: (map['inputType'] as String?) ?? 'text',
+      options: optionsRaw.map((e) => e.toString()).toList(),
+      placeholder: (map['placeholder'] as String?) ?? 'Type your answer',
+    );
+  }
 }
 
 class AiAssessmentResponse {
@@ -69,39 +102,75 @@ class AiAssessmentResponse {
 }
 
 class AiAssessmentService {
+  static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
+
   Future<AiAssessmentResponse> generateAssessment(AiAssessmentPayload payload) async {
-    return _generateDirect(payload);
+    return _generateFinalAssessment(payload);
   }
 
-  Future<AiAssessmentResponse> _generateDirect(AiAssessmentPayload payload) async {
+  Future<DynamicQuestion> generateDynamicQuestion({
+    required int stepNumber,
+    required Map<String, dynamic> staticAnswers,
+    required List<Map<String, dynamic>> previousDynamicAnswers,
+  }) async {
+    _ensureApiKey();
+
+    final prompt = [
+      'You are generating one clinical follow-up question for a step-based medical intake.',
+      'Generate exactly one question for step $stepNumber.',
+      'Steps 1-4 are already collected. Step 5/6/7 are dynamic.',
+      'Question must depend on previous answers.',
+      '',
+      'Static answers (steps 1-4):',
+      jsonEncode(staticAnswers),
+      '',
+      'Previous dynamic answers:',
+      jsonEncode(previousDynamicAnswers),
+      '',
+      'Return only strict JSON with keys:',
+      '{"id": "q$stepNumber", "title": string, "description": string, "inputType": "dropdown"|"single_select"|"text"|"number", "options": [string], "placeholder": string}',
+      'Rules:',
+      '- For text/number inputType, options must be []',
+      '- For dropdown/single_select, options must have 2-6 short options',
+      '- Keep title concise and actionable',
+    ].join('\n');
+
+    final parsed = await _postAndParseJson(prompt);
+    return DynamicQuestion.fromMap(parsed);
+  }
+
+  Future<AiAssessmentResponse> _generateFinalAssessment(
+    AiAssessmentPayload payload,
+  ) async {
+    _ensureApiKey();
+
+    final prompt = [
+      'You are RoboDoc AI. Provide non-diagnostic triage style summary.',
+      'Use static answers (1-4) and dynamic answers (5-7).',
+      '',
+      'Assessment payload:',
+      jsonEncode(payload.toJson()),
+      '',
+      'Return only valid JSON with keys:',
+      '{"possibleIndication": string, "summary": string, "confidence": number, "icdCode": string, "riskLevel": "LOW"|"MOD"|"HIGH"}',
+    ].join('\n');
+
+    final parsed = await _postAndParseJson(prompt);
+    return AiAssessmentResponse.fromMap(parsed);
+  }
+
+  void _ensureApiKey() {
     if (kOpenAiApiKey.isEmpty ||
         kOpenAiApiKey == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
       throw Exception(
         'Set your API key in lib/secrets/openai_api_key.local.dart first.',
       );
     }
+  }
 
-    final prompt = [
-      'You are RoboDoc AI. Return concise triage guidance, not a diagnosis.',
-      'Always include a safety note to seek urgent care for severe symptoms.',
-      '',
-      'Patient profile:',
-      '- age: ${payload.age}',
-      '- sexAtBirth: ${payload.sexAtBirth}',
-      '- symptoms: ${payload.symptoms}',
-      '- quickAdds: ${payload.quickAdds.join(', ')}',
-      '- durationDays: ${payload.durationDays}',
-      '- painIntensity(0-10): ${payload.painIntensity}',
-      '- physicalMarkers: ${payload.physicalMarkers.join(', ')}',
-      '- travelInternational(last14days): ${payload.travelInternational}',
-      '- takingAntibiotics: ${payload.takingAntibiotics}',
-      '',
-      'Return only valid JSON with keys:',
-      '{"possibleIndication": string, "summary": string, "confidence": number, "icdCode": string, "riskLevel": "LOW"|"MOD"|"HIGH"}',
-    ].join('\n');
-
+  Future<Map<String, dynamic>> _postAndParseJson(String prompt) async {
     final response = await http.post(
-      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      Uri.parse(_apiUrl),
       headers: {
         'Authorization': 'Bearer $kOpenAiApiKey',
         'Content-Type': 'application/json',
@@ -141,7 +210,6 @@ class AiAssessmentService {
       throw Exception('OpenAI direct call returned empty content.');
     }
 
-    final parsed = jsonDecode(content) as Map<String, dynamic>;
-    return AiAssessmentResponse.fromMap(parsed);
+    return jsonDecode(content) as Map<String, dynamic>;
   }
 }
