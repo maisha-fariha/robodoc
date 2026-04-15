@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../controllers/assessment_controller.dart';
 import '../routes/app_routes.dart';
-import 'results_page.dart';
+import '../models/assessment_result.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
 
@@ -1484,6 +1485,12 @@ class _AssessmentPageState extends State<AssessmentPage> {
     final symptomsRaw = _symptomsController.text.trim();
     final symptoms = symptomsRaw.toLowerCase();
 
+    // Persist key demographics so Profile can be dynamic.
+    Get.find<AssessmentController>().setFromAssessment(
+      age: age,
+      sexAtBirth: _sexAtBirth,
+    );
+
     final hasFever = _quickAdds.contains('Fever') ||
         _physicalMarkers.contains('Fever') ||
         symptoms.contains('fever');
@@ -1552,7 +1559,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
       ),
     ];
 
-    return AssessmentResult(
+    final result = AssessmentResult(
       headline: 'Your results are\nready',
       possibleIndication: indication,
       summary: summary,
@@ -1563,6 +1570,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
       spo2: spo2,
       suggestions: suggestions,
     );
+
+    Get.find<AssessmentController>().setLatestResult(result);
+    return result;
   }
 }
 
