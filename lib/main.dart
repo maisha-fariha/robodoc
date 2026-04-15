@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'controllers/ai_assessment_controller.dart';
+import 'controllers/assessment_controller.dart';
 import 'controllers/auth_controller.dart';
 import 'firebase_options.dart';
 import 'routes/app_pages.dart';

@@ -1,43 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controllers/assessment_controller.dart';
+import '../models/assessment_result.dart';
 import '../routes/app_routes.dart';
-
-class AssessmentResult {
-  final String headline;
-  final String possibleIndication;
-  final String summary;
-  final String icdCode;
-  final int confidence; // 0-100
-  final int temperatureF;
-  final int heartRate;
-  final int spo2;
-  final List<ResultSuggestion> suggestions;
-
-  const AssessmentResult({
-    required this.headline,
-    required this.possibleIndication,
-    required this.summary,
-    required this.icdCode,
-    required this.confidence,
-    required this.temperatureF,
-    required this.heartRate,
-    required this.spo2,
-    required this.suggestions,
-  });
-}
-
-class ResultSuggestion {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const ResultSuggestion({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-}
+import '../widgets/robodoc_bottom_nav.dart';
 
 class ResultsPage extends StatelessWidget {
   const ResultsPage({super.key});
@@ -47,7 +14,15 @@ class ResultsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final result = Get.arguments as AssessmentResult?;
+    final stored = Get.find<AssessmentController>().latestResult.value;
+    final arg = Get.arguments as AssessmentResult?;
+    final result = arg ?? stored;
+
+    // Keep the latest result cached so bottom-nav tab switches don't lose it.
+    if (arg != null) {
+      Get.find<AssessmentController>().setLatestResult(arg);
+    }
+
     if (result == null) {
       return const Scaffold(
         backgroundColor: Colors.white,
@@ -86,7 +61,7 @@ class ResultsPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _BottomBar(),
+      bottomNavigationBar: const RoboDocBottomNav(selected: RoboDocTab.diagnosis),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -590,92 +565,4 @@ class _CareSuggestionsSection extends StatelessWidget {
   }
 }
 
-class _BottomBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomItem(
-            icon: Icons.add_box_rounded,
-            label: 'DIAGNOSIS',
-            selected: true,
-            onTap: () {},
-          ),
-          _BottomItem(
-            icon: Icons.history_rounded,
-            label: 'HISTORY',
-            selected: false,
-            onTap: () => Get.offAllNamed(AppRoutes.history),
-          ),
-          _BottomItem(
-            icon: Icons.person_outline_rounded,
-            label: 'PROFILE',
-            selected: false,
-            onTap: () => Get.snackbar('Profile', 'Coming soon'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BottomItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _BottomItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  static const _primary = Color(0xFF0E204D);
-  static const _secondary = Color(0xFF21CDC0);
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? _secondary : Colors.black.withValues(alpha: 0.4);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 32,
-              decoration: BoxDecoration(
-                color: selected ? _secondary.withValues(alpha: 0.25) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: selected ? _primary : color),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 

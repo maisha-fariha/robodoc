@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../controllers/ai_assessment_controller.dart';
+import '../controllers/assessment_controller.dart';
 import '../routes/app_routes.dart';
 import '../services/ai_assessment_service.dart';
 import 'results_page.dart';
+import '../models/assessment_result.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
 
@@ -1492,6 +1494,12 @@ class _AssessmentPageState extends State<AssessmentPage> {
     final age = int.tryParse(_ageController.text.trim()) ?? 0;
     final symptomsRaw = _symptomsController.text.trim();
     final symptoms = symptomsRaw.toLowerCase();
+
+    // Persist key demographics so Profile can be dynamic.
+    Get.find<AssessmentController>().setFromAssessment(
+      age: age,
+      sexAtBirth: _sexAtBirth,
+    );
 
     final hasFever = _quickAdds.contains('Fever') ||
         _physicalMarkers.contains('Fever') ||
