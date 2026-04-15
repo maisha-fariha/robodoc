@@ -22,6 +22,7 @@ void main() async {
 
   Get.put(AppServices.getIt<AuthController>(), permanent: true);
   Get.put(AppServices.getIt<AiAssessmentController>(), permanent: true);
+  Get.put(AssessmentController(), permanent: true);
 
   runApp(const MyApp());
 }
