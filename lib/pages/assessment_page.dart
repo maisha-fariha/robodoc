@@ -37,6 +37,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Map<int, dynamic> _dynamicAnswers = {};
   final Map<int, TextEditingController> _dynamicTextControllers = {};
   bool _isGeneratingDynamicQuestion = false;
+  bool _isSubmittingResults = false;
 
   @override
   void initState() {
@@ -130,6 +131,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
     required BuildContext context,
     required String nextLabel,
     VoidCallback? onNext,
+    bool nextLoading = false,
   }) {
     final canGoBack = _currentStep > 1;
 
@@ -160,7 +162,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
           child: SizedBox(
             height: 52,
             child: ElevatedButton(
-              onPressed: onNext ?? _goNext,
+              onPressed: nextLoading ? null : (onNext ?? _goNext),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
@@ -168,10 +170,19 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   borderRadius: BorderRadius.circular(50),
                 ),
               ),
-              child: Text(
-                nextLabel,
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-              ),
+              child: nextLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      nextLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
             ),
           ),
         ),
@@ -1152,6 +1163,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
           _navRow(
             context: context,
             nextLabel: stepNumber == 7 ? 'See Results' : 'Continue',
+            nextLoading: stepNumber == 7 && _isSubmittingResults,
             onNext: () async {
               if (!_validateDynamicAnswer(stepNumber)) return;
               if (stepNumber < 7) {
@@ -1159,8 +1171,21 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 if (mounted) await _goNext();
                 return;
               }
-              final result = await _analyzeAnswers();
-              Get.toNamed(AppRoutes.results, arguments: result);
+              setState(() {
+                _isSubmittingResults = true;
+              });
+              try {
+                final result = await _analyzeAnswers();
+                if (mounted) {
+                  Get.toNamed(AppRoutes.results, arguments: result);
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isSubmittingResults = false;
+                  });
+                }
+              }
             },
           ),
         ],
