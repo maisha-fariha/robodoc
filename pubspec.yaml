@@ -38,9 +38,9 @@ dependencies:
   get_it: ^7.7.0
   firebase_core: ^4.6.0
   firebase_auth: ^6.3.0
-  cloud_functions: ^6.0.1
   image_picker: ^1.1.2
   google_sign_in: ^6.3.0
+  http: ^1.2.2
   crypto: ^3.0.6
   # Both packages are required: gems_data_layer sources import gems_core (e.g. BaseRepository).
   # Same layout as flutter_gems/pubspec.yaml — without gems_core, iOS/Android compile fails.

@@ -6,6 +6,8 @@ class AssessmentResult {
   final String summary;
   final String icdCode;
   final int confidence; // 0-100
+  final String riskLevel; // LOW | MOD | HIGH
+  final String riskSummary;
   final int temperatureF;
   final int heartRate;
   final int spo2;
@@ -17,6 +19,8 @@ class AssessmentResult {
     required this.summary,
     required this.icdCode,
     required this.confidence,
+    required this.riskLevel,
+    required this.riskSummary,
     required this.temperatureF,
     required this.heartRate,
     required this.spo2,
