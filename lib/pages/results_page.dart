@@ -601,10 +601,25 @@ class _BottomBar extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          _BottomItem(icon: Icons.add_box_rounded, label: 'DIAGNOSIS', selected: true),
-          _BottomItem(icon: Icons.history_rounded, label: 'HISTORY', selected: false),
-          _BottomItem(icon: Icons.person_outline_rounded, label: 'PROFILE', selected: false),
+        children: [
+          _BottomItem(
+            icon: Icons.add_box_rounded,
+            label: 'DIAGNOSIS',
+            selected: true,
+            onTap: () {},
+          ),
+          _BottomItem(
+            icon: Icons.history_rounded,
+            label: 'HISTORY',
+            selected: false,
+            onTap: () => Get.offAllNamed(AppRoutes.history),
+          ),
+          _BottomItem(
+            icon: Icons.person_outline_rounded,
+            label: 'PROFILE',
+            selected: false,
+            onTap: () => Get.snackbar('Profile', 'Coming soon'),
+          ),
         ],
       ),
     );
@@ -615,11 +630,13 @@ class _BottomItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
+  final VoidCallback onTap;
 
   const _BottomItem({
     required this.icon,
     required this.label,
     required this.selected,
+    required this.onTap,
   });
 
   static const _primary = Color(0xFF0E204D);
@@ -628,29 +645,36 @@ class _BottomItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? _secondary : Colors.black.withValues(alpha: 0.4);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 42,
-          height: 32,
-          decoration: BoxDecoration(
-            color: selected ? _secondary.withValues(alpha: 0.25) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: selected ? _primary : color),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 32,
+              decoration: BoxDecoration(
+                color: selected ? _secondary.withValues(alpha: 0.25) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: selected ? _primary : color),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+                color: color,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
-            color: color,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
