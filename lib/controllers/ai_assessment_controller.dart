@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:get/get.dart';
 
 import '../services/ai_assessment_service.dart';
@@ -17,16 +16,17 @@ class AiAssessmentController extends GetxController {
     errorMessage.value = null;
     try {
       return await _service.generateAssessment(payload);
-    } on FirebaseFunctionsException catch (e) {
-      if (e.code == 'resource-exhausted') {
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('insufficient_quota') ||
+          message.contains('resource-exhausted')) {
         errorMessage.value =
             'AI quota exceeded. Please add OpenAI billing or use another API key.';
       } else {
-        errorMessage.value = e.message ?? 'Cloud function failed.';
+        errorMessage.value = message.isEmpty
+            ? 'Unable to generate AI response right now.'
+            : message;
       }
-      return null;
-    } catch (_) {
-      errorMessage.value = 'Unable to generate AI response right now.';
       return null;
     } finally {
       isLoading.value = false;

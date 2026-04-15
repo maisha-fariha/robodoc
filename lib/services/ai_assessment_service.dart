@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:http/http.dart' as http;
+import '../secrets/openai_api_key.local.dart';
 
 class AiAssessmentPayload {
   final int age;
@@ -69,30 +69,15 @@ class AiAssessmentResponse {
 }
 
 class AiAssessmentService {
-  AiAssessmentService({required FirebaseFunctions functions})
-      : _functions = functions;
-
-  final FirebaseFunctions _functions;
-  static const bool _useDirectOpenAi =
-      bool.fromEnvironment('USE_DIRECT_OPENAI', defaultValue: false);
-  static const String _openAiApiKey =
-      String.fromEnvironment('OPENAI_API_KEY', defaultValue: '');
-
   Future<AiAssessmentResponse> generateAssessment(AiAssessmentPayload payload) async {
-    if (_useDirectOpenAi) {
-      return _generateDirect(payload);
-    }
-
-    final callable = _functions.httpsCallable('generateAssessmentReportClean');
-    final result = await callable.call<Map<String, dynamic>>(payload.toJson());
-    final data = result.data;
-    return AiAssessmentResponse.fromMap(data);
+    return _generateDirect(payload);
   }
 
   Future<AiAssessmentResponse> _generateDirect(AiAssessmentPayload payload) async {
-    if (_openAiApiKey.isEmpty) {
+    if (kOpenAiApiKey.isEmpty ||
+        kOpenAiApiKey == 'PASTE_YOUR_OPENAI_API_KEY_HERE') {
       throw Exception(
-        'Direct OpenAI mode enabled but OPENAI_API_KEY dart-define is missing.',
+        'Set your API key in lib/secrets/openai_api_key.local.dart first.',
       );
     }
 
@@ -118,7 +103,7 @@ class AiAssessmentService {
     final response = await http.post(
       Uri.parse('https://api.openai.com/v1/chat/completions'),
       headers: {
-        'Authorization': 'Bearer $_openAiApiKey',
+        'Authorization': 'Bearer $kOpenAiApiKey',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
