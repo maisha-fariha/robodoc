@@ -7,6 +7,7 @@ import '../controllers/assessment_controller.dart';
 import '../routes/app_routes.dart';
 import '../services/ai_assessment_service.dart';
 import '../models/assessment_result.dart';
+import '../utils/app_snackbar.dart';
 class AssessmentPage extends StatefulWidget {
   const AssessmentPage({super.key});
 
@@ -137,9 +138,51 @@ class _AssessmentPageState extends State<AssessmentPage> {
       ok = answer != null && answer.toString().trim().isNotEmpty;
     }
     if (!ok) {
-      Get.snackbar('Answer required', 'Please answer this question to continue.');
+      AppSnackbar.show('Answer required', 'Please answer this question to continue.');
     }
     return ok;
+  }
+
+  bool _validateStep1() {
+    final age = int.tryParse(_ageController.text.trim());
+    if (age == null || age <= 0) {
+      AppSnackbar.show('Age required', 'Please enter a valid age.');
+      return false;
+    }
+    if (_sexAtBirth == null) {
+      AppSnackbar.show('Gender required', 'Please select your gender.');
+      return false;
+    }
+    return true;
+  }
+
+  bool _validateStep2() {
+    final hasSymptomsText = _symptomsController.text.trim().isNotEmpty;
+    if (!hasSymptomsText) {
+      AppSnackbar.show('Symptoms required', 'Please describe your symptoms.');
+      return false;
+    }
+    return true;
+  }
+
+  bool _validateStep3() {
+    if (_durationPreset == null) {
+      AppSnackbar.show('Duration required', 'Please select symptom duration.');
+      return false;
+    }
+    if (_exactDays < 1) {
+      AppSnackbar.show('Duration required', 'Please set exact duration.');
+      return false;
+    }
+    return true;
+  }
+
+  bool _validateStep4() {
+    if (_painIntensity < 0 || _painIntensity > 10) {
+      AppSnackbar.show('Pain level required', 'Please set pain intensity.');
+      return false;
+    }
+    return true;
   }
 
   Widget _navRow({
@@ -468,7 +511,10 @@ class _AssessmentPageState extends State<AssessmentPage> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _goNext,
+              onPressed: () async {
+                if (!_validateStep1()) return;
+                await _goNext();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
@@ -673,6 +719,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             context: context,
             nextLabel: 'Continue',
             onNext: () async {
+              if (!_validateStep2()) return;
               await _ensureDynamicQuestion(5);
               if (mounted) {
                 await _goNext();
@@ -875,7 +922,14 @@ class _AssessmentPageState extends State<AssessmentPage> {
             ),
           ),
           const SizedBox(height: 18),
-          _navRow(context: context, nextLabel: 'Next'),
+          _navRow(
+            context: context,
+            nextLabel: 'Next',
+            onNext: () async {
+              if (!_validateStep3()) return;
+              await _goNext();
+            },
+          ),
           const SizedBox(height: 10),
           Center(
             child: Text(
@@ -1068,7 +1122,14 @@ class _AssessmentPageState extends State<AssessmentPage> {
             accent: _secondary,
           ),
           const SizedBox(height: 18),
-          _navRow(context: context, nextLabel: 'Continue'),
+          _navRow(
+            context: context,
+            nextLabel: 'Continue',
+            onNext: () async {
+              if (!_validateStep4()) return;
+              await _goNext();
+            },
+          ),
           const SizedBox(height: 12),
           Center(
             child: Text(
@@ -1431,7 +1492,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
     if (aiResponse == null) {
       final error = _aiController.errorMessage.value;
       if (error != null && error.isNotEmpty) {
-        Get.snackbar('AI unavailable', '$error Showing local assessment.');
+        AppSnackbar.show('AI unavailable', '$error Showing local assessment.');
       }
       return localResult;
     }
