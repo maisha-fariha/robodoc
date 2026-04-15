@@ -183,7 +183,7 @@ class ResultsPage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'MOD',
+                                  result.riskLevel,
                                   style: textTheme.displaySmall?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
@@ -208,7 +208,7 @@ class ResultsPage extends StatelessWidget {
                     const SizedBox(height: 18),
                     Center(
                       child: Text(
-                        'Your risk profile is currently moderate. Monitor vitals every 4 hours.',
+                        result.riskSummary,
                         style: textTheme.titleMedium?.copyWith(
                           color: _secondary.withValues(alpha: 0.95),
                           height: 1.35,

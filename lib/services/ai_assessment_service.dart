@@ -78,6 +78,8 @@ class AiAssessmentResponse {
   final int confidence;
   final String icdCode;
   final String riskLevel;
+  final String riskSummary;
+  final List<String> suggestions;
 
   const AiAssessmentResponse({
     required this.possibleIndication,
@@ -85,10 +87,13 @@ class AiAssessmentResponse {
     required this.confidence,
     required this.icdCode,
     required this.riskLevel,
+    required this.riskSummary,
+    required this.suggestions,
   });
 
   factory AiAssessmentResponse.fromMap(Map<dynamic, dynamic> map) {
     final confidenceValue = (map['confidence'] as num?)?.toInt() ?? 65;
+    final suggestionsRaw = map['suggestions'] as List<dynamic>? ?? const [];
     return AiAssessmentResponse(
       possibleIndication:
           (map['possibleIndication'] as String?) ?? 'General symptom review',
@@ -97,6 +102,9 @@ class AiAssessmentResponse {
       confidence: confidenceValue.clamp(0, 100),
       icdCode: (map['icdCode'] as String?) ?? 'ICD-10: R69',
       riskLevel: (map['riskLevel'] as String?) ?? 'MOD',
+      riskSummary: (map['riskSummary'] as String?) ??
+          'Monitor symptoms and seek care if they worsen.',
+      suggestions: suggestionsRaw.map((e) => e.toString()).toList(),
     );
   }
 }
@@ -152,7 +160,9 @@ class AiAssessmentService {
       jsonEncode(payload.toJson()),
       '',
       'Return only valid JSON with keys:',
-      '{"possibleIndication": string, "summary": string, "confidence": number, "icdCode": string, "riskLevel": "LOW"|"MOD"|"HIGH"}',
+      '{"possibleIndication": string, "summary": string, "confidence": number, "icdCode": string, "riskLevel": "LOW"|"MOD"|"HIGH", "riskSummary": string, "suggestions": [string]}',
+      'Rules:',
+      '- suggestions must include 3 short actionable items.',
     ].join('\n');
 
     final parsed = await _postAndParseJson(prompt);

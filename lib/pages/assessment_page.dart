@@ -36,6 +36,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Map<int, DynamicQuestion> _dynamicQuestions = {};
   final Map<int, dynamic> _dynamicAnswers = {};
   final Map<int, TextEditingController> _dynamicTextControllers = {};
+  final Map<int, TextEditingController> _dynamicNoteControllers = {};
   bool _isGeneratingDynamicQuestion = false;
   bool _isSubmittingResults = false;
 
@@ -75,11 +76,18 @@ class _AssessmentPageState extends State<AssessmentPage> {
         .where((step) => _dynamicQuestions.containsKey(step))
         .map((step) {
           final q = _dynamicQuestions[step]!;
+          final raw = _dynamicAnswers[step];
+          final answer = raw is Map<String, dynamic>
+              ? {
+                  'selected': raw['selected'],
+                  'note': raw['note'],
+                }
+              : raw;
           return {
             'step': step,
             'questionId': q.id,
             'question': q.title,
-            'answer': _dynamicAnswers[step],
+            'answer': answer,
             'inputType': q.inputType,
           };
         })
@@ -120,7 +128,14 @@ class _AssessmentPageState extends State<AssessmentPage> {
     final question = _dynamicQuestions[stepNumber];
     if (question == null) return false;
     final answer = _dynamicAnswers[stepNumber];
-    final ok = answer != null && answer.toString().trim().isNotEmpty;
+    bool ok = false;
+    if (answer is Map<String, dynamic>) {
+      final selected = (answer['selected'] ?? '').toString().trim();
+      final note = (answer['note'] ?? '').toString().trim();
+      ok = selected.isNotEmpty || note.isNotEmpty;
+    } else {
+      ok = answer != null && answer.toString().trim().isNotEmpty;
+    }
     if (!ok) {
       Get.snackbar('Answer required', 'Please answer this question to continue.');
     }
@@ -198,6 +213,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
     _symptomsController.dispose();
     _symptomsFocus.dispose();
     for (final c in _dynamicTextControllers.values) {
+      c.dispose();
+    }
+    for (final c in _dynamicNoteControllers.values) {
       c.dispose();
     }
     super.dispose();
@@ -1203,32 +1221,81 @@ class _AssessmentPageState extends State<AssessmentPage> {
       case 'dropdown':
       case 'single_select':
         final options = question.options;
-        final selected = options.contains(currentValue) ? currentValue as String? : null;
+        final answerMap = currentValue is Map<String, dynamic>
+            ? currentValue
+            : <String, dynamic>{'selected': null, 'note': ''};
+        final selectedRaw = answerMap['selected'];
+        final selected =
+            options.contains(selectedRaw) ? selectedRaw as String? : null;
+        final noteController = _dynamicNoteControllers.putIfAbsent(
+          stepNumber,
+          () => TextEditingController(text: (answerMap['note'] ?? '').toString()),
+        );
         if (question.inputType == 'dropdown') {
-          return DropdownButtonFormField<String>(
-            initialValue: selected,
-            items: options
-                .map((o) => DropdownMenuItem<String>(value: o, child: Text(o)))
-                .toList(),
-            decoration: const InputDecoration(
-              hintText: 'Select one option',
-            ),
-            onChanged: (v) => setState(() => _dynamicAnswers[stepNumber] = v),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selected,
+                items: options
+                    .map((o) => DropdownMenuItem<String>(value: o, child: Text(o)))
+                    .toList(),
+                decoration: const InputDecoration(
+                  hintText: 'Select one option',
+                ),
+                onChanged: (v) => setState(
+                  () => _dynamicAnswers[stepNumber] = {
+                    'selected': v,
+                    'note': noteController.text.trim(),
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteController,
+                onChanged: (v) => _dynamicAnswers[stepNumber] = {
+                  'selected': selected,
+                  'note': v.trim(),
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Additional details (optional)',
+                ),
+              ),
+            ],
           );
         }
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: options.map((o) {
-            final isSelected = currentValue == o;
-            return ChoiceChip(
-              label: Text(o),
-              selected: isSelected,
-              onSelected: (_) => setState(() => _dynamicAnswers[stepNumber] = o),
-              selectedColor: _secondary.withValues(alpha: 0.25),
-              backgroundColor: Colors.black.withValues(alpha: 0.03),
-            );
-          }).toList(),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: options.map((o) {
+                final isSelected = selected == o;
+                return ChoiceChip(
+                  label: Text(o),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => _dynamicAnswers[stepNumber] = {
+                        'selected': o,
+                        'note': noteController.text.trim(),
+                      }),
+                  selectedColor: _secondary.withValues(alpha: 0.25),
+                  backgroundColor: Colors.black.withValues(alpha: 0.03),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: noteController,
+              onChanged: (v) => _dynamicAnswers[stepNumber] = {
+                'selected': selected,
+                'note': v.trim(),
+              },
+              decoration: const InputDecoration(
+                hintText: 'Additional details (optional)',
+              ),
+            ),
+          ],
         );
       case 'number':
       case 'text':
@@ -1337,6 +1404,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
       summary: summary,
       icdCode: icd,
       confidence: confidence,
+      riskLevel: 'MOD',
+      riskSummary:
+          'Your risk profile is currently moderate. Monitor vitals every 4 hours.',
       temperatureF: temp,
       heartRate: hr,
       spo2: spo2,
@@ -1372,10 +1442,25 @@ class _AssessmentPageState extends State<AssessmentPage> {
       summary: aiResponse.summary,
       icdCode: aiResponse.icdCode,
       confidence: aiResponse.confidence,
+      riskLevel: aiResponse.riskLevel,
+      riskSummary: aiResponse.riskSummary,
       temperatureF: localResult.temperatureF,
       heartRate: localResult.heartRate,
       spo2: localResult.spo2,
-      suggestions: localResult.suggestions,
+      suggestions: aiResponse.suggestions.isEmpty
+          ? localResult.suggestions
+          : aiResponse.suggestions.map((s) {
+              final parts = s.split(':');
+              final title = parts.first.trim();
+              final description = parts.length > 1
+                  ? parts.sublist(1).join(':').trim()
+                  : s.trim();
+              return ResultSuggestion(
+                icon: Icons.health_and_safety_rounded,
+                title: title.isEmpty ? 'Suggestion' : title,
+                description: description,
+              );
+            }).toList(),
     );
   }
 }
