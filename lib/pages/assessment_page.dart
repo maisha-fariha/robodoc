@@ -1492,6 +1492,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
               try {
                 final result = await _analyzeAnswers();
                 if (mounted) {
+                  Get.find<AssessmentController>().saveAssessmentResult(result);
                   Get.toNamed(AppRoutes.results, arguments: result);
                 }
               } finally {
@@ -1959,11 +1960,10 @@ class _DetailCard extends StatelessWidget {
                 InkWell(
                   onTap: onModify,
                   child: Text(
-                    'Modify detail',
+                    'Select other option',
                     style: textTheme.bodySmall?.copyWith(
                       color: Colors.black.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w800,
-                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
