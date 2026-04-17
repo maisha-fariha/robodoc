@@ -177,11 +177,7 @@ class AssessmentHistoryItem {
         .whereType<Map<dynamic, dynamic>>()
         .map(
           (s) => ResultSuggestion(
-            icon: IconData(
-              (s['iconCodePoint'] as num?)?.toInt() ?? Icons.health_and_safety_rounded.codePoint,
-              fontFamily:
-                  (s['iconFontFamily'] as String?) ?? Icons.health_and_safety_rounded.fontFamily,
-            ),
+            icon: Icons.health_and_safety_rounded,
             title: (s['title'] as String?) ?? 'Suggestion',
             description: (s['description'] as String?) ?? '',
           ),
