@@ -42,6 +42,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Map<int, String> _dynamicQuestionErrors = {};
   bool _isGeneratingDynamicQuestion = false;
   bool _isSubmittingResults = false;
+  bool _isStepActionInProgress = false;
 
   @override
   void initState() {
@@ -199,11 +200,12 @@ class _AssessmentPageState extends State<AssessmentPage> {
   Widget _navRow({
     required BuildContext context,
     required String nextLabel,
-    VoidCallback? onNext,
+    Future<void> Function()? onNext,
     bool nextLoading = false,
     bool disableBack = false,
   }) {
-    final canGoBack = _currentStep > 1 && !disableBack;
+    final canGoBack = _currentStep > 1 && !disableBack && !_isStepActionInProgress;
+    final loading = nextLoading || _isStepActionInProgress;
 
     return Row(
       children: [
@@ -232,7 +234,23 @@ class _AssessmentPageState extends State<AssessmentPage> {
           child: SizedBox(
             height: 52,
             child: ElevatedButton(
-              onPressed: nextLoading ? null : (onNext ?? _goNext),
+              onPressed: loading
+                  ? null
+                  : () async {
+                      if (_isStepActionInProgress) return;
+                      setState(() {
+                        _isStepActionInProgress = true;
+                      });
+                      try {
+                        await (onNext ?? _goNext)();
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isStepActionInProgress = false;
+                          });
+                        }
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
@@ -240,7 +258,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   borderRadius: BorderRadius.circular(50),
                 ),
               ),
-              child: nextLoading
+              child: loading
                   ? const SizedBox(
                       height: 20,
                       width: 20,
@@ -742,10 +760,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
             nextLabel: 'Continue',
             onNext: () async {
               if (!_validateStep2()) return;
-              await _ensureDynamicQuestion(5);
-              if (mounted) {
-                await _goNext();
-              }
+              await _goNext();
             },
           ),
         ],
@@ -1149,6 +1164,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
             nextLabel: 'Continue',
             onNext: () async {
               if (!_validateStep4()) return;
+              await _ensureDynamicQuestion(5);
+              if (!_dynamicQuestions.containsKey(5)) return;
               await _goNext();
             },
           ),

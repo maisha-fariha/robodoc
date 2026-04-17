@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
+import '../utils/app_snackbar.dart';
 import '../widgets/focus_fill_text_field.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -261,7 +262,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                final ok = _formKey.currentState?.validate() ?? false;
                                if (!ok) return;
                                if (!_agree) {
-                                 Get.snackbar(
+                                 AppSnackbar.show(
                                    'Agreement required',
                                    'Please accept Terms and Conditions and Privacy Protocol.',
                                  );

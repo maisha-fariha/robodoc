@@ -12,6 +12,7 @@ class AppSnackbar {
       title,
       message,
       snackPosition: SnackPosition.TOP,
+      snackStyle: SnackStyle.FLOATING,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       borderRadius: 12,
       backgroundColor: bg,

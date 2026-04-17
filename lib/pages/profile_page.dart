@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../controllers/assessment_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../utils/app_snackbar.dart';
 import '../widgets/robodoc_bottom_nav.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -55,7 +56,7 @@ class ProfilePage extends StatelessWidget {
         if (file == null) return;
         assessment.setProfileImagePath(file.path);
       } on PlatformException catch (e) {
-        Get.snackbar(
+        AppSnackbar.show(
           'Image selection failed',
           e.code == 'camera_access_denied'
               ? 'Camera permission denied. Please allow camera access.'
@@ -64,7 +65,7 @@ class ProfilePage extends StatelessWidget {
                   : (e.message?.isNotEmpty == true ? e.message! : 'Please try again.'),
         );
       } catch (e) {
-        Get.snackbar('Image selection failed', 'Please try again.');
+        AppSnackbar.show('Image selection failed', 'Please try again.');
       }
     }
 
@@ -132,7 +133,7 @@ class ProfilePage extends StatelessWidget {
       );
 
       if (saved == true) {
-        Get.snackbar('Saved', 'Health profile updated.');
+        AppSnackbar.show('Saved', 'Health profile updated.', isError: false);
       }
     }
 
@@ -752,7 +753,7 @@ class _HealthProfileEditorSheetState extends State<_HealthProfileEditorSheet> {
     void save() {
       final parsedAge = int.tryParse(_ageCtrl.text.trim());
       if (parsedAge == null || parsedAge <= 0 || parsedAge > 120) {
-        Get.snackbar('Invalid age', 'Please enter a valid age.');
+        AppSnackbar.show('Invalid age', 'Please enter a valid age.');
         return;
       }
 

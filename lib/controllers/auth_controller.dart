@@ -82,17 +82,24 @@ class AuthController extends GetxController {
           localUser.value = u;
           isOfflineSession.value = true;
           Get.offAllNamed(AppRoutes.assessment);
-          Get.snackbar('Offline login', 'You are logged in using local data.');
+          AppSnackbar.show(
+            'Offline login',
+            'You are logged in using local data.',
+            isError: false,
+          );
           return;
         } on LocalAuthException catch (le) {
-          Get.snackbar('Offline login failed', _localMessage(le));
+          AppSnackbar.show('Offline login failed', _localMessage(le));
           return;
         } catch (_) {
-          Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
+          AppSnackbar.show(
+            'Offline login failed',
+            'Local account data is invalid. Please sign in online.',
+          );
           return;
         }
       }
-      Get.snackbar('Login failed', _firebaseMessage(e));
+      AppSnackbar.show('Login failed', _firebaseMessage(e));
     } on TimeoutException {
       await _localReady;
       try {
@@ -100,11 +107,18 @@ class AuthController extends GetxController {
         localUser.value = u;
         isOfflineSession.value = true;
         Get.offAllNamed(AppRoutes.assessment);
-        Get.snackbar('Offline login', 'No internet. Logged in using local data.');
+        AppSnackbar.show(
+          'Offline login',
+          'No internet. Logged in using local data.',
+          isError: false,
+        );
       } on LocalAuthException catch (le) {
-        Get.snackbar('Offline login failed', _localMessage(le));
+        AppSnackbar.show('Offline login failed', _localMessage(le));
       } catch (_) {
-        Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
+        AppSnackbar.show(
+          'Offline login failed',
+          'Local account data is invalid. Please sign in online.',
+        );
       }
     } catch (e) {
       // Some platforms throw non-FirebaseAuthException errors when offline.
@@ -115,17 +129,24 @@ class AuthController extends GetxController {
           localUser.value = u;
           isOfflineSession.value = true;
           Get.offAllNamed(AppRoutes.assessment);
-          Get.snackbar('Offline login', 'You are logged in using local data.');
+          AppSnackbar.show(
+            'Offline login',
+            'You are logged in using local data.',
+            isError: false,
+          );
           return;
         } on LocalAuthException catch (le) {
-          Get.snackbar('Offline login failed', _localMessage(le));
+          AppSnackbar.show('Offline login failed', _localMessage(le));
           return;
         } catch (_) {
-          Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
+          AppSnackbar.show(
+            'Offline login failed',
+            'Local account data is invalid. Please sign in online.',
+          );
           return;
         }
       }
-      Get.snackbar('Login failed', 'Please try again.');
+      AppSnackbar.show('Login failed', 'Please try again.');
     } finally {
       isLoading.value = false;
     }
@@ -159,7 +180,7 @@ class AuthController extends GetxController {
       // Per UX: take them back to Login to sign in explicitly.
       await _auth.signOut();
       Get.offAllNamed(AppRoutes.login);
-      Get.snackbar('Account created', 'Please sign in to continue.');
+      AppSnackbar.show('Account created', 'Please sign in to continue.', isError: false);
     } on FirebaseAuthException catch (e) {
       if (_shouldTryOffline(e)) {
         await _localReady;
@@ -170,14 +191,18 @@ class AuthController extends GetxController {
             password: password,
           );
           Get.offAllNamed(AppRoutes.login);
-          Get.snackbar('Offline sign up', 'Account created locally. Sign in to continue.');
+          AppSnackbar.show(
+            'Offline sign up',
+            'Account created locally. Sign in to continue.',
+            isError: false,
+          );
           return;
         } on LocalAuthException catch (le) {
-          Get.snackbar('Offline sign up failed', _localMessage(le));
+          AppSnackbar.show('Offline sign up failed', _localMessage(le));
           return;
         }
       }
-      Get.snackbar('Sign up failed', _firebaseMessage(e));
+      AppSnackbar.show('Sign up failed', _firebaseMessage(e));
     } on TimeoutException {
       await _localReady;
       try {
@@ -187,9 +212,13 @@ class AuthController extends GetxController {
           password: password,
         );
         Get.offAllNamed(AppRoutes.login);
-        Get.snackbar('Offline sign up', 'No internet. Account created locally.');
+        AppSnackbar.show(
+          'Offline sign up',
+          'No internet. Account created locally.',
+          isError: false,
+        );
       } on LocalAuthException catch (le) {
-        Get.snackbar('Offline sign up failed', _localMessage(le));
+        AppSnackbar.show('Offline sign up failed', _localMessage(le));
       }
     } catch (e) {
       if (_shouldTryOffline(e)) {
@@ -201,14 +230,18 @@ class AuthController extends GetxController {
             password: password,
           );
           Get.offAllNamed(AppRoutes.login);
-          Get.snackbar('Offline sign up', 'Account created locally. Sign in to continue.');
+          AppSnackbar.show(
+            'Offline sign up',
+            'Account created locally. Sign in to continue.',
+            isError: false,
+          );
           return;
         } on LocalAuthException catch (le) {
-          Get.snackbar('Offline sign up failed', _localMessage(le));
+          AppSnackbar.show('Offline sign up failed', _localMessage(le));
           return;
         }
       }
-      Get.snackbar('Sign up failed', 'Please try again.');
+      AppSnackbar.show('Sign up failed', 'Please try again.');
     } finally {
       isLoading.value = false;
     }
@@ -237,9 +270,9 @@ class AuthController extends GetxController {
 
       Get.offAllNamed(AppRoutes.assessment);
     } on FirebaseAuthException catch (e) {
-      Get.snackbar('Google sign-in failed', _firebaseMessage(e));
+      AppSnackbar.show('Google sign-in failed', _firebaseMessage(e));
     } catch (e) {
-      Get.snackbar('Google sign-in failed', 'Please try again.');
+      AppSnackbar.show('Google sign-in failed', 'Please try again.');
     } finally {
       isLoading.value = false;
     }
