@@ -1,14 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:gems_data_layer/gems_data_layer.dart' show DatabaseService;
 import 'package:get/get.dart';
 
 import '../models/assessment_result.dart';
 
 class AssessmentController extends GetxController {
+  AssessmentController({required DatabaseService databaseService})
+      : _databaseService = databaseService;
+
+  static const String _boxName = 'robodoc_history';
+  static const String _historyKey = 'assessment_history_v1';
+  static const int _maxHistoryItems = 50;
+
+  final DatabaseService _databaseService;
   final RxInt age = 0.obs;
   final RxnString sexAtBirth = RxnString(); // 'male' | 'female' | 'self'
   final RxnString bloodType = RxnString();
   final RxnString profileImagePath = RxnString();
   final Rxn<AssessmentResult> latestResult = Rxn<AssessmentResult>();
   final RxList<AssessmentHistoryItem> history = <AssessmentHistoryItem>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _restoreHistory();
+  }
 
   void setFromAssessment({
     required int age,
@@ -30,7 +46,7 @@ class AssessmentController extends GetxController {
     latestResult.value = result;
   }
 
-  void saveAssessmentResult(AssessmentResult result) {
+  Future<void> saveAssessmentResult(AssessmentResult result) async {
     latestResult.value = result;
     history.insert(
       0,
@@ -43,9 +59,10 @@ class AssessmentController extends GetxController {
         outcome: result.riskSummary,
       ),
     );
-    if (history.length > 50) {
-      history.removeRange(50, history.length);
+    if (history.length > _maxHistoryItems) {
+      history.removeRange(_maxHistoryItems, history.length);
     }
+    await _persistHistory();
   }
 
   static String _confidenceTag(int confidence) {
@@ -72,6 +89,37 @@ class AssessmentController extends GetxController {
   String get bloodDisplay => (bloodType.value?.trim().isNotEmpty ?? false)
       ? bloodType.value!.trim()
       : '—';
+
+  Future<void> _restoreHistory() async {
+    try {
+      await _databaseService.openBox(_boxName);
+      final raw = _databaseService.get<List<dynamic>>(_historyKey, boxName: _boxName);
+      if (raw == null) return;
+      final restored = raw
+          .whereType<Map<dynamic, dynamic>>()
+          .map((e) => AssessmentHistoryItem.fromMap(e))
+          .toList();
+      history.assignAll(restored);
+      if (restored.isNotEmpty) {
+        latestResult.value = restored.first.result;
+      }
+    } catch (_) {
+      // ignore malformed or unavailable local history data
+    }
+  }
+
+  Future<void> _persistHistory() async {
+    try {
+      await _databaseService.openBox(_boxName);
+      await _databaseService.save<List<Map<String, dynamic>>>(
+        _historyKey,
+        history.map((e) => e.toMap()).toList(),
+        boxName: _boxName,
+      );
+    } catch (_) {
+      // ignore persistence errors for now, keep runtime history
+    }
+  }
 }
 
 class AssessmentHistoryItem {
@@ -90,5 +138,79 @@ class AssessmentHistoryItem {
     required this.tag,
     required this.outcome,
   });
+
+  Map<String, dynamic> toMap() => {
+        'title': title,
+        'date': date.toIso8601String(),
+        'confidence': confidence,
+        'tag': tag,
+        'outcome': outcome,
+        'result': {
+          'headline': result.headline,
+          'possibleIndication': result.possibleIndication,
+          'summary': result.summary,
+          'icdCode': result.icdCode,
+          'confidence': result.confidence,
+          'riskLevel': result.riskLevel,
+          'riskSummary': result.riskSummary,
+          'temperatureF': result.temperatureF,
+          'heartRate': result.heartRate,
+          'spo2': result.spo2,
+          'suggestions': result.suggestions
+              .map(
+                (s) => {
+                  'iconCodePoint': s.icon.codePoint,
+                  'iconFontFamily': s.icon.fontFamily,
+                  'title': s.title,
+                  'description': s.description,
+                },
+              )
+              .toList(),
+        },
+      };
+
+  factory AssessmentHistoryItem.fromMap(Map<dynamic, dynamic> map) {
+    final resultMap = (map['result'] as Map<dynamic, dynamic>?) ?? const {};
+    final suggestionsRaw =
+        (resultMap['suggestions'] as List<dynamic>?) ?? const <dynamic>[];
+    final suggestions = suggestionsRaw
+        .whereType<Map<dynamic, dynamic>>()
+        .map(
+          (s) => ResultSuggestion(
+            icon: IconData(
+              (s['iconCodePoint'] as num?)?.toInt() ?? Icons.health_and_safety_rounded.codePoint,
+              fontFamily:
+                  (s['iconFontFamily'] as String?) ?? Icons.health_and_safety_rounded.fontFamily,
+            ),
+            title: (s['title'] as String?) ?? 'Suggestion',
+            description: (s['description'] as String?) ?? '',
+          ),
+        )
+        .toList();
+
+    final result = AssessmentResult(
+      headline: (resultMap['headline'] as String?) ?? 'Your results are\nready',
+      possibleIndication:
+          (resultMap['possibleIndication'] as String?) ?? 'General symptom review',
+      summary: (resultMap['summary'] as String?) ?? '',
+      icdCode: (resultMap['icdCode'] as String?) ?? 'ICD-10: R69',
+      confidence: (resultMap['confidence'] as num?)?.toInt() ?? 0,
+      riskLevel: (resultMap['riskLevel'] as String?) ?? 'MOD',
+      riskSummary: (resultMap['riskSummary'] as String?) ?? '',
+      temperatureF: (resultMap['temperatureF'] as num?)?.toInt() ?? 98,
+      heartRate: (resultMap['heartRate'] as num?)?.toInt() ?? 80,
+      spo2: (resultMap['spo2'] as num?)?.toInt() ?? 98,
+      suggestions: suggestions,
+    );
+
+    return AssessmentHistoryItem(
+      result: result,
+      title: (map['title'] as String?) ?? result.possibleIndication,
+      date: DateTime.tryParse((map['date'] as String?) ?? '') ?? DateTime.now(),
+      confidence: (map['confidence'] as num?)?.toDouble() ?? (result.confidence / 100.0),
+      tag: (map['tag'] as String?) ?? 'MODERATE',
+      outcome: (map['outcome'] as String?) ?? result.riskSummary,
+    );
+  }
 }
 

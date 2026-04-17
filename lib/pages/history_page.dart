@@ -214,8 +214,8 @@ class _HistoryPageState extends State<HistoryPage> {
                   }
                   return ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (_, index) {
+                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
                       final i = items[index];
                       return _HistoryCard(
                         item: i,

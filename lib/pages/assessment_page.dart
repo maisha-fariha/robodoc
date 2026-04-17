@@ -1492,7 +1492,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
               try {
                 final result = await _analyzeAnswers();
                 if (mounted) {
-                  Get.find<AssessmentController>().saveAssessmentResult(result);
+                  await Get.find<AssessmentController>().saveAssessmentResult(result);
                   Get.toNamed(AppRoutes.results, arguments: result);
                 }
               } finally {

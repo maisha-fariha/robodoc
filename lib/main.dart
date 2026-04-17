@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:gems_data_layer/gems_data_layer.dart' show DatabaseService;
 import 'package:get/get.dart';
 
 import 'controllers/ai_assessment_controller.dart';
@@ -22,7 +23,10 @@ void main() async {
 
   Get.put(AppServices.getIt<AuthController>(), permanent: true);
   Get.put(AppServices.getIt<AiAssessmentController>(), permanent: true);
-  Get.put(AssessmentController(), permanent: true);
+  Get.put(
+    AssessmentController(databaseService: AppServices.getIt<DatabaseService>()),
+    permanent: true,
+  );
 
   runApp(const MyApp());
 }
