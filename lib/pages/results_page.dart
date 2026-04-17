@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/assessment_controller.dart';
 import '../models/assessment_result.dart';
 import '../routes/app_routes.dart';
+import '../utils/app_snackbar.dart';
 import '../widgets/robodoc_bottom_nav.dart';
 
 class ResultsPage extends StatelessWidget {
@@ -125,14 +126,15 @@ class ResultsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 22),
-                    Row(
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
                         _Pill(
                           text: result.icdCode,
                           bg: _secondary.withValues(alpha: 0.95),
                           fg: Colors.black.withValues(alpha: 0.85),
                         ),
-                        const SizedBox(width: 10),
                         _Pill(
                           text: 'CONFIDENCE: ${result.confidence}%',
                           bg: Colors.black.withValues(alpha: 0.08),
@@ -234,7 +236,11 @@ class ResultsPage extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => AppSnackbar.show(
+                    'Coming soon',
+                    'Consult Doctor will be available in a future update.',
+                    isError: false,
+                  ),
                   icon: const Icon(Icons.video_call_rounded),
                   label: const Text('Consult Doctor'),
                   style: ElevatedButton.styleFrom(
@@ -251,7 +257,11 @@ class ResultsPage extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => AppSnackbar.show(
+                    'Coming soon',
+                    'Save Results will be available in a future update.',
+                    isError: false,
+                  ),
                   icon: const Icon(Icons.save_alt_rounded),
                   label: const Text('Save Results'),
                   style: OutlinedButton.styleFrom(
@@ -334,6 +344,8 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: fg,
           fontWeight: FontWeight.w900,

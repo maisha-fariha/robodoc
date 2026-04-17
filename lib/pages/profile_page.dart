@@ -7,13 +7,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../controllers/assessment_controller.dart';
 import '../controllers/auth_controller.dart';
-import '../routes/app_routes.dart';
 import '../widgets/robodoc_bottom_nav.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  static const _primary = Color(0xFF0E204D);
   static const _secondary = Color(0xFF21CDC0);
 
   @override
@@ -23,16 +21,25 @@ class ProfilePage extends StatelessWidget {
     final assessment = Get.find<AssessmentController>();
     final picker = ImagePicker();
 
-    final displayName = auth.user.value?.displayName?.trim().isNotEmpty == true
-        ? auth.user.value!.displayName!.trim()
-        : (auth.localUser.value?.fullName.trim().isNotEmpty == true
-            ? auth.localUser.value!.fullName.trim()
-            : 'User');
-    final email = auth.user.value?.email?.trim().isNotEmpty == true
-        ? auth.user.value!.email!.trim()
-        : (auth.localUser.value?.email.trim().isNotEmpty == true
-            ? auth.localUser.value!.email.trim()
-            : '—');
+    String currentDisplayName() {
+      if (auth.user.value?.displayName?.trim().isNotEmpty == true) {
+        return auth.user.value!.displayName!.trim();
+      }
+      if (auth.localUser.value?.fullName.trim().isNotEmpty == true) {
+        return auth.localUser.value!.fullName.trim();
+      }
+      return 'User';
+    }
+
+    String currentEmail() {
+      if (auth.user.value?.email?.trim().isNotEmpty == true) {
+        return auth.user.value!.email!.trim();
+      }
+      if (auth.localUser.value?.email.trim().isNotEmpty == true) {
+        return auth.localUser.value!.email.trim();
+      }
+      return '—';
+    }
 
     final isVerified = auth.user.value?.emailVerified == true;
 
@@ -144,9 +151,22 @@ class ProfilePage extends StatelessWidget {
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.settings_rounded),
+          Obx(
+            () => IconButton(
+              onPressed: auth.isLoading.value
+                  ? null
+                  : () async {
+                      await auth.signOut();
+                    },
+              icon: auth.isLoading.value
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.logout_rounded),
+              tooltip: 'Log out',
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -170,7 +190,7 @@ class ProfilePage extends StatelessWidget {
                           width: 96,
                           height: 96,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, error, stackTrace) => Container(
                             width: 96,
                             height: 96,
                             color: Colors.black.withValues(alpha: 0.08),
@@ -214,19 +234,23 @@ class ProfilePage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                displayName,
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black.withValues(alpha: 0.9),
+              Obx(
+                () => Text(
+                  currentDisplayName(),
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black.withValues(alpha: 0.9),
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                email,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.w600,
+              Obx(
+                () => Text(
+                  currentEmail(),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),

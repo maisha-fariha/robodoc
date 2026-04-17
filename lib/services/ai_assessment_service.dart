@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 import '../secrets/openai_api_key.local.dart';
@@ -111,6 +112,7 @@ class AiAssessmentResponse {
 
 class AiAssessmentService {
   static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
+  static const Duration _requestTimeout = Duration(seconds: 20);
 
   Future<AiAssessmentResponse> generateAssessment(AiAssessmentPayload payload) async {
     return _generateFinalAssessment(payload);
@@ -179,29 +181,36 @@ class AiAssessmentService {
   }
 
   Future<Map<String, dynamic>> _postAndParseJson(String prompt) async {
-    final response = await http.post(
-      Uri.parse(_apiUrl),
-      headers: {
-        'Authorization': 'Bearer $kOpenAiApiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'response_format': {'type': 'json_object'},
-        'temperature': 0.3,
-        'messages': [
-          {
-            'role': 'system',
-            'content':
-                'You are a medical triage assistant for non-diagnostic guidance.',
-          },
-          {
-            'role': 'user',
-            'content': prompt,
-          },
-        ],
-      }),
-    );
+    late final http.Response response;
+    try {
+      response = await http
+          .post(
+            Uri.parse(_apiUrl),
+            headers: {
+              'Authorization': 'Bearer $kOpenAiApiKey',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': 'gpt-4o-mini',
+              'response_format': {'type': 'json_object'},
+              'temperature': 0.3,
+              'messages': [
+                {
+                  'role': 'system',
+                  'content':
+                      'You are a medical triage assistant for non-diagnostic guidance.',
+                },
+                {
+                  'role': 'user',
+                  'content': prompt,
+                },
+              ],
+            }),
+          )
+          .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw Exception('AI request timed out. Please retry.');
+    }
 
     if (response.statusCode >= 400) {
       throw Exception('OpenAI direct call failed: ${response.body}');

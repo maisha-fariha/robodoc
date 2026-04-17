@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
+import '../utils/app_snackbar.dart';
 import '../widgets/focus_fill_text_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,6 +40,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final auth = Get.find<AuthController>();
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     Future<void> openForgotPasswordDialog() async {
       await Get.dialog<bool>(
@@ -54,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          padding: EdgeInsets.fromLTRB(24, 18, 24, 18 + keyboardInset),
           child: Form(
             key: _formKey,
             child: Column(
@@ -274,7 +276,11 @@ class _LoginPageState extends State<LoginPage> {
                     child: _SocialButton(
                       icon: Icons.apple,
                       label: 'Apple ID',
-                      onPressed: () {},
+                      onPressed: () => AppSnackbar.show(
+                        'Coming soon',
+                        'Apple ID login will be available in a future update.',
+                        isError: false,
+                      ),
                     ),
                   ),
                 ],
@@ -308,7 +314,7 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 150),
+              const SizedBox(height: 32),
               Center(
                             child: Wrap(
                               crossAxisAlignment: WrapCrossAlignment.center,
@@ -366,7 +372,7 @@ class _FieldLabel extends StatelessWidget {
 
 class _ForgotPasswordDialog extends StatefulWidget {
   final String initialEmail;
-  final Future<void> Function(String email) onSend;
+  final Future<bool> Function(String email) onSend;
 
   const _ForgotPasswordDialog({
     required this.initialEmail,
@@ -395,13 +401,16 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
 
   Future<void> _send() async {
     if (_loading) return;
-    setState(() => _loading = true);
-    try {
-      await widget.onSend(_emailCtrl.text);
-      if (mounted) Get.back(result: true);
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      AppSnackbar.show('Email required', 'Please enter your email address.');
+      return;
     }
+    setState(() => _loading = true);
+    if (mounted) {
+      Get.back(result: true);
+    }
+    await widget.onSend(email);
   }
 
   @override

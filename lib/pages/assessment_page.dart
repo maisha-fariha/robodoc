@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../controllers/ai_assessment_controller.dart';
 import '../controllers/assessment_controller.dart';
+import '../controllers/auth_controller.dart';
 import '../routes/app_routes.dart';
 import '../services/ai_assessment_service.dart';
 import '../models/assessment_result.dart';
@@ -38,6 +39,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final Map<int, dynamic> _dynamicAnswers = {};
   final Map<int, TextEditingController> _dynamicTextControllers = {};
   final Map<int, TextEditingController> _dynamicNoteControllers = {};
+  final Map<int, String> _dynamicQuestionErrors = {};
   bool _isGeneratingDynamicQuestion = false;
   bool _isSubmittingResults = false;
 
@@ -95,34 +97,43 @@ class _AssessmentPageState extends State<AssessmentPage> {
         .toList();
   }
 
-  DynamicQuestion _fallbackQuestion(int stepNumber) {
-    return DynamicQuestion(
-      id: 'q$stepNumber',
-      title: 'Please provide more details (step $stepNumber)',
-      description: 'Add any important symptom details that may help triage.',
-      inputType: 'text',
-      options: const [],
-      placeholder: 'Type your answer',
-    );
-  }
-
   Future<void> _ensureDynamicQuestion(int stepNumber) async {
     if (_dynamicQuestions.containsKey(stepNumber)) return;
+    if (!mounted) return;
 
     setState(() {
       _isGeneratingDynamicQuestion = true;
+      _dynamicQuestionErrors.remove(stepNumber);
     });
 
-    final question = await _aiController.generateQuestion(
-      stepNumber: stepNumber,
-      staticAnswers: _staticAnswerContext(),
-      previousDynamicAnswers: _dynamicAnswerContext(),
-    );
-
-    setState(() {
-      _dynamicQuestions[stepNumber] = question ?? _fallbackQuestion(stepNumber);
-      _isGeneratingDynamicQuestion = false;
-    });
+    try {
+      final question = await _aiController.generateQuestion(
+        stepNumber: stepNumber,
+        staticAnswers: _staticAnswerContext(),
+        previousDynamicAnswers: _dynamicAnswerContext(),
+      );
+      if (!mounted) return;
+      setState(() {
+        if (question != null) {
+          _dynamicQuestions[stepNumber] = question;
+          _dynamicQuestionErrors.remove(stepNumber);
+        } else {
+          final error = _aiController.errorMessage.value;
+          _dynamicQuestionErrors[stepNumber] =
+              (error == null || error.trim().isEmpty)
+                  ? 'Unable to generate follow-up question right now.'
+                  : error;
+        }
+        _isGeneratingDynamicQuestion = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _dynamicQuestionErrors[stepNumber] =
+            'Unable to generate follow-up question right now.';
+        _isGeneratingDynamicQuestion = false;
+      });
+    }
   }
 
   bool _validateDynamicAnswer(int stepNumber) {
@@ -190,8 +201,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
     required String nextLabel,
     VoidCallback? onNext,
     bool nextLoading = false,
+    bool disableBack = false,
   }) {
-    final canGoBack = _currentStep > 1;
+    final canGoBack = _currentStep > 1 && !disableBack;
 
     return Row(
       children: [
@@ -279,6 +291,30 @@ class _AssessmentPageState extends State<AssessmentPage> {
           'Robo Doc AI',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
+        actions: [
+          Obx(() {
+            final auth = Get.find<AuthController>();
+            return IconButton(
+              onPressed: auth.isLoading.value
+                  ? null
+                  : () async {
+                      await auth.signOut();
+                    },
+              icon: auth.isLoading.value
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.logout_rounded),
+              tooltip: 'Log out',
+            );
+          }),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -1147,8 +1183,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
   Widget _buildDynamicStep(BuildContext context, int stepNumber) {
     final textTheme = Theme.of(context).textTheme;
     final question = _dynamicQuestions[stepNumber];
+    final questionError = _dynamicQuestionErrors[stepNumber];
 
-    if (question == null || _isGeneratingDynamicQuestion) {
+    if (_isGeneratingDynamicQuestion) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1161,6 +1198,48 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 color: Colors.black.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (question == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Step $stepNumber question',
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: Colors.black.withValues(alpha: 0.85),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                questionError ?? 'Unable to load follow-up question.',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            _navRow(
+              context: context,
+              nextLabel: 'Retry',
+              onNext: () async {
+                await _ensureDynamicQuestion(stepNumber);
+              },
             ),
           ],
         ),
@@ -1233,7 +1312,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
               if (!_validateDynamicAnswer(stepNumber)) return;
               if (stepNumber < 7) {
                 await _ensureDynamicQuestion(stepNumber + 1);
-                if (mounted) await _goNext();
+                if (mounted && _dynamicQuestions.containsKey(stepNumber + 1)) {
+                  await _goNext();
+                }
                 return;
               }
               setState(() {
@@ -1252,6 +1333,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 }
               }
             },
+            disableBack: stepNumber == 7 && _isSubmittingResults,
           ),
         ],
       ),

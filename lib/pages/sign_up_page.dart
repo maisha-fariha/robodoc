@@ -48,12 +48,13 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final auth = Get.find<AuthController>();
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          padding: EdgeInsets.fromLTRB(24, 18, 24, 18 + keyboardInset),
           child: Form(
             key: _formKey,
             child: Column(

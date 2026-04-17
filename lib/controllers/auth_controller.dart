@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../routes/app_routes.dart';
 import '../services/local_auth_service.dart';
+import '../utils/app_snackbar.dart';
 
 class AuthController extends GetxController {
   AuthController({
@@ -60,6 +61,7 @@ class AuthController extends GetxController {
     required String email,
     required String password,
   }) async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
       await _auth
@@ -85,6 +87,9 @@ class AuthController extends GetxController {
         } on LocalAuthException catch (le) {
           Get.snackbar('Offline login failed', _localMessage(le));
           return;
+        } catch (_) {
+          Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
+          return;
         }
       }
       Get.snackbar('Login failed', _firebaseMessage(e));
@@ -98,6 +103,8 @@ class AuthController extends GetxController {
         Get.snackbar('Offline login', 'No internet. Logged in using local data.');
       } on LocalAuthException catch (le) {
         Get.snackbar('Offline login failed', _localMessage(le));
+      } catch (_) {
+        Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
       }
     } catch (e) {
       // Some platforms throw non-FirebaseAuthException errors when offline.
@@ -113,6 +120,9 @@ class AuthController extends GetxController {
         } on LocalAuthException catch (le) {
           Get.snackbar('Offline login failed', _localMessage(le));
           return;
+        } catch (_) {
+          Get.snackbar('Offline login failed', 'Local account data is invalid. Please sign in online.');
+          return;
         }
       }
       Get.snackbar('Login failed', 'Please try again.');
@@ -126,6 +136,7 @@ class AuthController extends GetxController {
     required String email,
     required String password,
   }) async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
       final cred = await _auth
@@ -204,6 +215,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> signInWithGoogle() async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
       // Google sign-in requires network and can't be done offline.
@@ -233,55 +245,76 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> sendPasswordResetEmail({required String email}) async {
+  Future<bool> sendPasswordResetEmail({required String email}) async {
     final e = email.trim();
     if (!isValidEmail(e)) {
-      Get.snackbar('Invalid email', 'Please enter a valid email address.');
-      return;
+      AppSnackbar.show('Invalid email', 'Please enter a valid email address.');
+      return false;
     }
 
+    if (isLoading.value) {
+      AppSnackbar.show(
+        'Please wait',
+        'Another request is in progress. Try again in a moment.',
+      );
+      return false;
+    }
     isLoading.value = true;
     try {
       await _auth.sendPasswordResetEmail(email: e).timeout(const Duration(seconds: 7));
-      Get.snackbar(
-        'Reset link sent',
-        'Check your email for password reset instructions.',
+      AppSnackbar.show(
+        'Email sent',
+        'Password reset link has been sent to your email.',
+        isError: false,
       );
+      return true;
     } on FirebaseAuthException catch (ex) {
       // Common: user-not-found (don’t leak too much info; keep UX simple).
       final msg = ex.code == 'user-not-found'
           ? 'If an account exists for that email, you’ll receive a reset link.'
           : _firebaseMessage(ex);
-      Get.snackbar('Password reset', msg);
+      AppSnackbar.show('Password reset', msg);
+      return false;
     } on TimeoutException {
-      Get.snackbar('Password reset', 'Network timeout. Please try again.');
+      AppSnackbar.show('Password reset', 'Network timeout. Please try again.');
+      return false;
     } catch (ex) {
       if (_shouldTryOffline(ex)) {
-        Get.snackbar('Password reset', 'No internet connection. Please try again online.');
+        AppSnackbar.show(
+          'Password reset',
+          'No internet connection. Please try again online.',
+        );
       } else {
-        Get.snackbar('Password reset', 'Please try again.');
+        AppSnackbar.show('Password reset', 'Please try again.');
       }
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    if (isLoading.value) return;
+    isLoading.value = true;
     try {
-      await _googleSignIn.signOut();
-    } catch (_) {
-      // ignore
+      await _auth.signOut();
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // ignore
+      }
+      try {
+        await _localReady;
+        await _localAuth.clearSession();
+      } catch (_) {
+        // If local storage isn't ready, still allow logout/navigation.
+      }
+      isOfflineSession.value = false;
+      localUser.value = null;
+      Get.offAllNamed(AppRoutes.login);
+    } finally {
+      isLoading.value = false;
     }
-    try {
-      await _localReady;
-      await _localAuth.clearSession();
-    } catch (_) {
-      // If local storage isn't ready, still allow logout/navigation.
-    }
-    isOfflineSession.value = false;
-    localUser.value = null;
-    Get.offAllNamed(AppRoutes.login);
   }
 
   static bool _shouldTryOffline(Object e) {
@@ -305,6 +338,8 @@ class AuthController extends GetxController {
         return 'Invalid email or password.';
       case 'email-already-in-use':
         return 'This email is already registered offline.';
+      case 'corrupt-local-user':
+        return 'Local account data is invalid. Please sign in online once.';
       default:
         return 'Offline auth failed. Please try again.';
     }

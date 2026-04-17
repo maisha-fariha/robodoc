@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../routes/app_routes.dart';
 import '../widgets/robodoc_bottom_nav.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
   static const _primary = Color(0xFF0E204D);
-  static const _secondary = Color(0xFF21CDC0);
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;

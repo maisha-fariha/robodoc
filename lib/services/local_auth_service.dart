@@ -90,10 +90,14 @@ class LocalAuthService {
     if (user == null) {
       throw const LocalAuthException('user-not-found');
     }
-    final saltBytes = base64Decode(user.passwordSalt);
-    final computed = _hashPassword(saltBytes, password);
-    if (computed != user.passwordHash) {
-      throw const LocalAuthException('wrong-password');
+    try {
+      final saltBytes = base64Decode(user.passwordSalt);
+      final computed = _hashPassword(saltBytes, password);
+      if (computed != user.passwordHash) {
+        throw const LocalAuthException('wrong-password');
+      }
+    } on FormatException {
+      throw const LocalAuthException('corrupt-local-user');
     }
     await _db.save<String>(_sessionEmailKey, e, boxName: _boxName);
     return user;

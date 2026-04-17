@@ -9,9 +9,6 @@ class RoboDocBottomNav extends StatelessWidget {
   final RoboDocTab selected;
   const RoboDocBottomNav({super.key, required this.selected});
 
-  static const _primary = Color(0xFF0E204D);
-  static const _secondary = Color(0xFF21CDC0);
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -23,25 +20,30 @@ class RoboDocBottomNav extends StatelessWidget {
           border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.06))),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _NavItem(
-              icon: Icons.add,
-              label: 'DIAGNOSIS',
-              selected: selected == RoboDocTab.diagnosis,
-              onTap: () => Get.offAllNamed(AppRoutes.results),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.add,
+                label: 'DIAGNOSIS',
+                selected: selected == RoboDocTab.diagnosis,
+                onTap: () => Get.offAllNamed(AppRoutes.results),
+              ),
             ),
-            _NavItem(
-              icon: Icons.history_rounded,
-              label: 'HISTORY',
-              selected: selected == RoboDocTab.history,
-              onTap: () => Get.offAllNamed(AppRoutes.history),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.history_rounded,
+                label: 'HISTORY',
+                selected: selected == RoboDocTab.history,
+                onTap: () => Get.offAllNamed(AppRoutes.history),
+              ),
             ),
-            _NavItem(
-              icon: Icons.person_outline_rounded,
-              label: 'PROFILE',
-              selected: selected == RoboDocTab.profile,
-              onTap: () => Get.offAllNamed(AppRoutes.profile),
+            Expanded(
+              child: _NavItem(
+                icon: Icons.person_outline_rounded,
+                label: 'PROFILE',
+                selected: selected == RoboDocTab.profile,
+                onTap: () => Get.offAllNamed(AppRoutes.profile),
+              ),
             ),
           ],
         ),
@@ -75,7 +77,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -93,13 +95,17 @@ class _NavItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.9,
-                color: labelColor,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.9,
+                  color: labelColor,
+                ),
               ),
             ),
           ],
