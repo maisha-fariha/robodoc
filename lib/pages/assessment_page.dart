@@ -34,6 +34,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
   String? _durationPreset; // 'hours' | 'days' | 'week' | 'month'
   double _exactDays = 14;
   double _painIntensity = 7;
+  String _sleepImpact = 'Unable to find a comfortable position; waking up multiple times.';
+  String _dailyFunction = 'Mobility is limited but self-care remains possible with caution.';
   late final AiAssessmentController _aiController;
   final Map<int, DynamicQuestion> _dynamicQuestions = {};
   final Map<int, dynamic> _dynamicAnswers = {};
@@ -72,6 +74,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
       'quickAdds': _quickAdds.toList(),
       'durationDays': _exactDays.round(),
       'painIntensity': _painIntensity.round(),
+      'sleepImpact': _sleepImpact,
+      'dailyFunction': _dailyFunction,
     };
   }
 
@@ -194,7 +198,137 @@ class _AssessmentPageState extends State<AssessmentPage> {
       AppSnackbar.show('Pain level required', 'Please set pain intensity.');
       return false;
     }
+    if (_sleepImpact.trim().isEmpty || _dailyFunction.trim().isEmpty) {
+      AppSnackbar.show(
+        'Impact details required',
+        'Please set Sleep Impact and Daily Function details.',
+      );
+      return false;
+    }
     return true;
+  }
+
+  Future<void> _pickStep4Detail({
+    required String title,
+    required List<String> options,
+    required String currentValue,
+    required void Function(String value) onSelected,
+  }) async {
+    final selected = await Get.bottomSheet<String>(
+      SafeArea(
+        top: false,
+        child: Material(
+          color: const Color(0xFFF6F8FB),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: _secondary.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.tune_rounded,
+                          color: Color(0xFF0E204D),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...options.map((option) {
+                  final isSelected = option == currentValue;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => Get.back(result: option),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? _secondary.withValues(alpha: 0.95)
+                                  : Colors.black.withValues(alpha: 0.08),
+                              width: isSelected ? 1.4 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  option,
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        color: Colors.black.withValues(alpha: 0.82),
+                                        fontWeight:
+                                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Color(0xFF21CDC0),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        onSelected(selected);
+      });
+    }
   }
 
   Widget _navRow({
@@ -1144,18 +1278,36 @@ class _AssessmentPageState extends State<AssessmentPage> {
           _DetailCard(
             icon: Icons.nights_stay_rounded,
             title: 'Sleep Impact',
-            description:
+            description: _sleepImpact,
+            onModify: () => _pickStep4Detail(
+              title: 'Update Sleep Impact',
+              currentValue: _sleepImpact,
+              options: const [
+                'No sleep disruption.',
+                'Mild discomfort, occasional wake-ups.',
                 'Unable to find a comfortable position; waking up multiple times.',
-            onModify: () {},
+                'Severe sleep disruption; sleep is significantly reduced.',
+              ],
+              onSelected: (value) => _sleepImpact = value,
+            ),
             accent: _secondary,
           ),
           const SizedBox(height: 14),
           _DetailCard(
             icon: Icons.directions_walk_rounded,
             title: 'Daily Function',
-            description:
+            description: _dailyFunction,
+            onModify: () => _pickStep4Detail(
+              title: 'Update Daily Function',
+              currentValue: _dailyFunction,
+              options: const [
+                'No noticeable impact on daily activities.',
+                'Minor impact; tasks are slower but manageable.',
                 'Mobility is limited but self-care remains possible with caution.',
-            onModify: () {},
+                'Major impact; unable to perform routine activities normally.',
+              ],
+              onSelected: (value) => _dailyFunction = value,
+            ),
             accent: _secondary,
           ),
           const SizedBox(height: 18),
@@ -1567,7 +1719,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
         quickAdds: _quickAdds.toList(),
         durationDays: _exactDays.round(),
         painIntensity: _painIntensity.round(),
-        physicalMarkers: const [],
+        physicalMarkers: [_sleepImpact, _dailyFunction],
         travelInternational: null,
         takingAntibiotics: null,
         dynamicAnswers: _dynamicAnswerContext(),
