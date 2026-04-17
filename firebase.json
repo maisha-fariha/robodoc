@@ -2,6 +2,14 @@
   "functions": {
     "source": "functions"
   },
+  "hosting": {
+    "public": "hosting_public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  },
   "flutter": {
     "platforms": {
       "android": {
