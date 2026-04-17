@@ -137,6 +137,142 @@ class ProfilePage extends StatelessWidget {
       }
     }
 
+    void openHelpCenter() {
+      Get.bottomSheet(
+        SafeArea(
+          top: false,
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Help Center',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...const [
+                    (
+                      'How does RoboDoc assessment work?',
+                      'Complete steps 1-4, then AI generates tailored follow-up questions for steps 5-7.',
+                    ),
+                    (
+                      'Are results a medical diagnosis?',
+                      'No. RoboDoc provides informational triage support only. Please consult a licensed clinician for diagnosis.',
+                    ),
+                    (
+                      'How can I view old assessments?',
+                      'Go to the History tab to open previous result summaries.',
+                    ),
+                  ].map(
+                    (item) => ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 10),
+                      title: Text(
+                        item.$1,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            item.$2,
+                            style: TextStyle(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    void openContactSupport() {
+      const supportEmail = 'info@encoderit.com';
+      Get.bottomSheet(
+        SafeArea(
+          top: false,
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Contact Us',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'For support or account help, contact our team.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.mail_outline_rounded),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            supportEmail,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              const ClipboardData(text: supportEmail),
+                            );
+                            AppSnackbar.show(
+                              'Copied',
+                              'Support email copied: $supportEmail',
+                              isError: false,
+                            );
+                          },
+                          child: const Text('Copy'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -314,19 +450,31 @@ class ProfilePage extends StatelessWidget {
               _ListTileCard(
                 icon: Icons.notifications_none_rounded,
                 title: 'Notifications',
-                onTap: () {},
+                onTap: () => AppSnackbar.show(
+                  'Coming soon',
+                  'Notifications settings will be available in a future update.',
+                  isError: false,
+                ),
               ),
               const SizedBox(height: 10),
               _ListTileCard(
                 icon: Icons.shield_outlined,
                 title: 'Security',
-                onTap: () {},
+                onTap: () => AppSnackbar.show(
+                  'Coming soon',
+                  'Security settings will be available in a future update.',
+                  isError: false,
+                ),
               ),
               const SizedBox(height: 10),
               _ListTileCard(
                 icon: Icons.lock_outline_rounded,
                 title: 'Privacy',
-                onTap: () {},
+                onTap: () => AppSnackbar.show(
+                  'Coming soon',
+                  'Privacy settings will be available in a future update.',
+                  isError: false,
+                ),
               ),
               const SizedBox(height: 18),
               _SectionLabel(title: 'SUPPORT'),
@@ -335,14 +483,14 @@ class ProfilePage extends StatelessWidget {
                 icon: Icons.help_outline_rounded,
                 title: 'Help Center',
                 subtitle: 'FAQs & Guides',
-                onTap: () {},
+                onTap: openHelpCenter,
               ),
               const SizedBox(height: 12),
               _SupportCard(
                 icon: Icons.mail_outline_rounded,
                 title: 'Contact Us',
                 subtitle: '24/7 Support',
-                onTap: () {},
+                onTap: openContactSupport,
               ),
               const SizedBox(height: 18),
               SizedBox(

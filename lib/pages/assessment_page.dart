@@ -46,6 +46,42 @@ class _AssessmentPageState extends State<AssessmentPage> {
   bool _isSubmittingResults = false;
   bool _isStepActionInProgress = false;
 
+  bool _hasAssessmentProgress() {
+    return (_ageController.text.trim().isNotEmpty) ||
+        (_sexAtBirth != null) ||
+        (_symptomsController.text.trim().isNotEmpty) ||
+        (_quickAdds.isNotEmpty) ||
+        (_durationPreset != null) ||
+        (_dynamicAnswers.isNotEmpty) ||
+        _currentStep > 1;
+  }
+
+  Future<bool> _confirmLeaveAssessment() async {
+    if (!_hasAssessmentProgress()) return true;
+    final shouldLeave = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Leave assessment?'),
+        content: const Text(
+          'Your current assessment progress may be lost if you leave now.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    return shouldLeave == true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -444,27 +480,55 @@ class _AssessmentPageState extends State<AssessmentPage> {
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
         actions: [
-          Obx(() {
-            final auth = Get.find<AuthController>();
-            return IconButton(
-              onPressed: auth.isLoading.value
-                  ? null
-                  : () async {
-                      await auth.signOut();
-                    },
-              icon: auth.isLoading.value
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.logout_rounded),
-              tooltip: 'Log out',
-            );
-          }),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            color: Colors.white,
+            onSelected: (value) async {
+              switch (value) {
+                case 'history':
+                  final ok = await _confirmLeaveAssessment();
+                  if (!ok) return;
+                  Get.offAllNamed(AppRoutes.history);
+                  break;
+                case 'profile':
+                  final ok = await _confirmLeaveAssessment();
+                  if (!ok) return;
+                  Get.offAllNamed(AppRoutes.profile);
+                  break;
+                case 'logout':
+                  final auth = Get.find<AuthController>();
+                  await auth.signOut();
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'history',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.history_rounded),
+                  title: Text('History'),
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'profile',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.person_outline_rounded),
+                  title: Text('Profile'),
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.logout_rounded),
+                  title: Text('Log out'),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -1320,17 +1384,6 @@ class _AssessmentPageState extends State<AssessmentPage> {
               if (!_dynamicQuestions.containsKey(5)) return;
               await _goNext();
             },
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              'SAVE PROGRESS',
-              style: textTheme.labelMedium?.copyWith(
-                color: Colors.black.withValues(alpha: 0.45),
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.6,
-              ),
-            ),
           ),
         ],
       ),
