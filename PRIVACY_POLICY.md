@@ -1,89 +1,62 @@
 # Privacy Policy
 
-Last updated: April 17, 2026
+Last updated: April 21, 2026
 
 This Privacy Policy explains how RoboDoc ("we", "our", "us") collects, uses, and protects information when you use the RoboDoc mobile application.
 
-Public policy URL: https://robodoc-894cb.web.app/privacy-policy.html
-
 ## 1. Information We Collect
 
-RoboDoc may process the following categories of data:
+RoboDoc may process the following:
 
-- Account information, such as email address and authentication identifiers, when you sign up or sign in.
-- Health and assessment information you enter in the app, such as symptoms, responses, and follow-up answers.
-- Profile information you provide in the app, such as age, sex/gender field selection, blood type, and profile image path.
-- Technical and diagnostic information required for app reliability and security.
+- Account data (for example email and sign-in identifiers) when you register or sign in, including optional Google sign-in where you use it.
+- Health and assessment information you enter (symptoms, answers, follow-ups).
+- Profile details you choose to add (for example age, sex/gender field, blood type, profile image path).
+- Limited technical data needed to run and secure the app.
 
 ## 2. How We Use Information
 
-We use information to:
-
-- Provide account authentication and session management.
-- Generate AI-based follow-up questions, summaries, and care suggestions.
-- Maintain app functionality, troubleshooting, and service quality.
-- Improve user experience and app safety.
+We use this information to provide sign-in, run assessments, generate AI follow-up questions and summaries, show results, keep local history on your device, and maintain the app.
 
 ## 3. AI Processing
 
-RoboDoc uses an AI provider to generate dynamic health assessment responses.
-
-- Information you enter for assessments may be sent to the AI provider for processing.
-- AI output is informational only and does not replace professional medical advice, diagnosis, or treatment.
-- Do not use RoboDoc for emergencies. Contact local emergency services when urgent care is needed.
+Assessment text you submit may be sent to an AI provider (for example OpenAI) to generate responses. Output is **informational only** — not medical advice, diagnosis, or treatment. **Do not use RoboDoc for emergencies**; contact local emergency services if you need urgent care.
 
 ## 4. Authentication and Local Storage
 
-- RoboDoc uses Firebase Authentication for sign-in/sign-up.
-- Some account/session and app data may be stored locally on your device to support login/session and app usage.
-- You are responsible for protecting access to your device.
+RoboDoc uses **Firebase Authentication**. Some data is stored **on your device** (for example session and saved assessments). You are responsible for device access.
 
 ## 5. Data Sharing
 
-We do not sell personal data.
-
-We may share data only with service providers needed to operate app features, including:
-
-- Firebase (authentication)
-- OpenAI or configured AI provider (AI-generated responses)
-
-These providers process data according to their own privacy terms and policies.
+We do **not** sell personal data. We use service providers as needed: **Firebase** (authentication) and **OpenAI** or another configured AI provider (AI responses). They process data under their own policies.
 
 ## 6. Data Retention
 
-We retain data only as long as needed to provide app functionality, comply with legal obligations, resolve disputes, and enforce agreements.
-
-Locally stored data may remain on your device until app data is cleared or the app is uninstalled.
+We keep data only as long as needed for the app, legal requirements, disputes, and agreements. Local data stays on your device until you clear app data or uninstall.
 
 ## 7. Security
 
-We use reasonable technical and organizational measures to protect information. No method of transmission or storage is completely secure.
+We use reasonable measures to protect information. No storage or transmission is 100% secure.
 
 ## 8. Children's Privacy
 
-RoboDoc is not intended for children under 13 (or the minimum age required by local law). We do not knowingly collect personal data from children without required consent.
+RoboDoc is not aimed at children under 13 (or the minimum age required where you live). We do not knowingly collect children’s data without proper consent.
 
 ## 9. International Transfers
 
-Your data may be processed in countries other than your own where our service providers operate.
+Data may be processed in countries where our providers operate.
 
 ## 10. Changes to This Policy
 
-We may update this Privacy Policy from time to time. Updates will be posted with a revised "Last updated" date.
+We may update this policy; the "Last updated" date will change when we do.
 
 ## 11. Contact
 
-For privacy questions or requests, contact:
+**Encoder It Ltd.** — privacy and support: **info@encoderit.com**
 
-- Company/Team: Encoder It Ltd.
-- Email: saadnanullah@gmail.com
+## 12. Account Deletion
 
-## 12. Account Deletion Request
-
-You can request account and associated data deletion here:
-
-- https://robodoc-894cb.web.app/account-deletion.html
+To request account deletion, use the account deletion option linked from the app store listing, or email **info@encoderit.com** from the address you use in RoboDoc with subject **Delete RoboDoc Account** and your account email in the message.
 
 ---
 
-Medical disclaimer: RoboDoc provides informational assistance only and is not a licensed medical service.
+Medical disclaimer: RoboDoc is informational only and is not a licensed medical service.
