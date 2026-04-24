@@ -361,6 +361,155 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
+    void openPrivacySheet() {
+      Get.bottomSheet(
+        SafeArea(
+          top: false,
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Privacy',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'RoboDoc uses Firebase services for core account features.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...const [
+                    (
+                      'Firebase Authentication',
+                      'Used for sign-in and account session management.',
+                    ),
+                    (
+                      'Firebase Storage',
+                      'Profile images are stored under your user ID path and access is restricted to the signed-in owner.',
+                    ),
+                    (
+                      'Data handling',
+                      'We do not sell personal data. Data is processed to provide app functionality.',
+                    ),
+                  ].map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.$1,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.$2,
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.65),
+                                height: 1.3,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    void openSecuritySheet() {
+      Get.bottomSheet(
+        SafeArea(
+          top: false,
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Security',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tips to keep your RoboDoc account secure:',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...const [
+                    'Use a strong unique password for your RoboDoc account.',
+                    'Do not share your login credentials with anyone.',
+                    'Sign out on shared devices after use.',
+                    'Keep your device lock screen enabled.',
+                    'Use password reset immediately if you suspect account misuse.',
+                  ].map(
+                    (tip) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Icon(Icons.shield_outlined, size: 16),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              tip,
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.72),
+                                height: 1.3,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -580,21 +729,13 @@ class _ProfilePageState extends State<ProfilePage> {
               _ListTileCard(
                 icon: Icons.shield_outlined,
                 title: 'Security',
-                onTap: () => AppSnackbar.show(
-                  'Coming soon',
-                  'Security settings will be available in a future update.',
-                  isError: false,
-                ),
+                onTap: openSecuritySheet,
               ),
               const SizedBox(height: 10),
               _ListTileCard(
                 icon: Icons.lock_outline_rounded,
                 title: 'Privacy',
-                onTap: () => AppSnackbar.show(
-                  'Coming soon',
-                  'Privacy settings will be available in a future update.',
-                  isError: false,
-                ),
+                onTap: openPrivacySheet,
               ),
               const SizedBox(height: 18),
               _SectionLabel(title: 'SUPPORT'),

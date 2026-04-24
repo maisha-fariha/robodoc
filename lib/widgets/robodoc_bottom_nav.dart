@@ -26,7 +26,7 @@ class RoboDocBottomNav extends StatelessWidget {
                 icon: Icons.add,
                 label: 'DIAGNOSIS',
                 selected: selected == RoboDocTab.diagnosis,
-                onTap: () => Get.offAllNamed(AppRoutes.results),
+                onTap: () => Get.offAllNamed(AppRoutes.assessment),
               ),
             ),
             Expanded(
