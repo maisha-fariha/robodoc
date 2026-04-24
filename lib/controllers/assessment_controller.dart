@@ -10,7 +10,7 @@ class AssessmentController extends GetxController {
       : _databaseService = databaseService;
 
   static const String _boxName = 'robodoc_history';
-  static const String _historyKey = 'assessment_history_v1';
+  static const String _historyKeyPrefix = 'assessment_history_v1';
   static const String _profileBoxName = 'robodoc_profile';
   static const String _profileKeyPrefix = 'profile_v1';
   static const int _maxHistoryItems = 50;
@@ -23,13 +23,12 @@ class AssessmentController extends GetxController {
   final Rxn<AssessmentResult> latestResult = Rxn<AssessmentResult>();
   final RxList<AssessmentHistoryItem> history = <AssessmentHistoryItem>[].obs;
   Worker? _authScopeWorker;
-  String _activeProfileScope = 'guest';
+  String _activeDataScope = 'guest';
 
   @override
   void onInit() {
     super.onInit();
-    _bindProfileToAuthScope();
-    _restoreHistory();
+    _bindUserScopedDataToAuth();
   }
 
   @override
@@ -107,8 +106,15 @@ class AssessmentController extends GetxController {
   Future<void> _restoreHistory() async {
     try {
       await _databaseService.openBox(_boxName);
-      final raw = _databaseService.get<List<dynamic>>(_historyKey, boxName: _boxName);
-      if (raw == null) return;
+      final raw = _databaseService.get<List<dynamic>>(
+        _historyStorageKey,
+        boxName: _boxName,
+      );
+      if (raw == null) {
+        history.clear();
+        latestResult.value = null;
+        return;
+      }
       final restored = raw
           .whereType<Map<dynamic, dynamic>>()
           .map((e) => AssessmentHistoryItem.fromMap(e))
@@ -126,7 +132,7 @@ class AssessmentController extends GetxController {
     try {
       await _databaseService.openBox(_boxName);
       await _databaseService.save<List<Map<String, dynamic>>>(
-        _historyKey,
+        _historyStorageKey,
         history.map((e) => e.toMap()).toList(),
         boxName: _boxName,
       );
@@ -135,27 +141,28 @@ class AssessmentController extends GetxController {
     }
   }
 
-  void _bindProfileToAuthScope() {
+  void _bindUserScopedDataToAuth() {
     final auth = Get.find<AuthController>();
 
-    Future<void> restore() async {
-      final scope = _profileScopeForAuth(auth);
-      if (scope == _activeProfileScope) return;
-      _activeProfileScope = scope;
+    Future<void> restoreForScope() async {
+      final scope = _dataScopeForAuth(auth);
+      if (scope == _activeDataScope) return;
+      _activeDataScope = scope;
       await _restoreProfile();
+      await _restoreHistory();
     }
 
     _authScopeWorker = everAll(
       [auth.user, auth.localUser, auth.isOfflineSession],
       (_) {
-        restore();
+        restoreForScope();
       },
     );
 
-    restore();
+    restoreForScope();
   }
 
-  String _profileScopeForAuth(AuthController auth) {
+  String _dataScopeForAuth(AuthController auth) {
     final uid = auth.user.value?.uid;
     if (uid != null && uid.isNotEmpty) {
       return 'uid:$uid';
@@ -167,7 +174,8 @@ class AssessmentController extends GetxController {
     return 'guest';
   }
 
-  String get _profileStorageKey => '$_profileKeyPrefix:$_activeProfileScope';
+  String get _profileStorageKey => '$_profileKeyPrefix:$_activeDataScope';
+  String get _historyStorageKey => '$_historyKeyPrefix:$_activeDataScope';
 
   Future<void> _restoreProfile() async {
     try {
