@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -10,17 +11,95 @@ import '../controllers/auth_controller.dart';
 import '../utils/app_snackbar.dart';
 import '../widgets/robodoc_bottom_nav.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
   static const _secondary = Color(0xFF21CDC0);
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploadingImage = false;
+  bool _didAttemptRemoteLoad = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didAttemptRemoteLoad) return;
+    _didAttemptRemoteLoad = true;
+    _loadRemoteProfileImage();
+  }
+
+  Reference _profileImageRef(String uid) =>
+      FirebaseStorage.instance.ref().child('users/$uid/profile/avatar.jpg');
+
+  Future<void> _loadRemoteProfileImage() async {
+    final auth = Get.find<AuthController>();
+    final assessment = Get.find<AssessmentController>();
+    final uid = auth.user.value?.uid;
+    if (uid == null) return;
+    final existing = assessment.profileImagePath.value ?? '';
+    if (existing.startsWith('http://') || existing.startsWith('https://')) return;
+
+    try {
+      final url = await _profileImageRef(uid).getDownloadURL();
+      assessment.setProfileImagePath(url);
+    } on FirebaseException catch (e) {
+      // Silent on profile-open background fetch to avoid noisy UX.
+      if (e.code == 'object-not-found') return;
+    } catch (_) {
+      // Silent: profile image may not exist yet or storage may be unavailable.
+    }
+  }
+
+  Future<void> _uploadProfileImage(XFile file) async {
+    final auth = Get.find<AuthController>();
+    final assessment = Get.find<AssessmentController>();
+    final uid = auth.user.value?.uid;
+    if (uid == null) return;
+
+    setState(() => _isUploadingImage = true);
+    try {
+      final ref = _profileImageRef(uid);
+      await ref.putFile(
+        File(file.path),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      final url = await ref.getDownloadURL();
+      assessment.setProfileImagePath(url);
+      AppSnackbar.show('Profile image', 'Profile image updated.', isError: false);
+    } on FirebaseException catch (e) {
+      final code = e.code.toLowerCase();
+      final message = (e.message ?? '').toLowerCase();
+      final notSetup = code == 'object-not-found' &&
+          (message.contains('no object exists') ||
+              message.contains('does not exist') ||
+              message.contains('desired reference'));
+      AppSnackbar.show(
+        'Upload failed',
+        notSetup
+            ? 'Firebase Storage is not ready for this project yet. '
+                'Open Firebase Console > Storage > Get Started, then try again.'
+            : (e.message?.isNotEmpty == true
+                ? e.message!
+                : 'Could not upload profile image.'),
+      );
+    } catch (_) {
+      AppSnackbar.show('Upload failed', 'Could not upload profile image.');
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final auth = Get.find<AuthController>();
     final assessment = Get.find<AssessmentController>();
-    final picker = ImagePicker();
 
     String currentDisplayName() {
       if (auth.user.value?.displayName?.trim().isNotEmpty == true) {
@@ -48,13 +127,22 @@ class ProfilePage extends StatelessWidget {
       try {
         // Give the bottom sheet time to close to avoid activity launch race conditions on some devices.
         await Future.delayed(const Duration(milliseconds: 150));
-        final file = await picker.pickImage(
+        final file = await _picker.pickImage(
           source: source,
           imageQuality: 85,
           maxWidth: 1024,
         );
         if (file == null) return;
         assessment.setProfileImagePath(file.path);
+        if (auth.user.value != null) {
+          await _uploadProfileImage(file);
+        } else {
+          AppSnackbar.show(
+            'Saved locally',
+            'Sign in online to sync profile image to your account.',
+            isError: false,
+          );
+        }
       } on PlatformException catch (e) {
         AppSnackbar.show(
           'Image selection failed',
@@ -322,6 +410,22 @@ class ProfilePage extends StatelessWidget {
                     child: Obx(() {
                       final path = assessment.profileImagePath.value;
                       if (path != null && path.isNotEmpty) {
+                        final isRemote =
+                            path.startsWith('http://') || path.startsWith('https://');
+                        if (isRemote) {
+                          return Image.network(
+                            path,
+                            width: 96,
+                            height: 96,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, error, stackTrace) => Container(
+                              width: 96,
+                              height: 96,
+                              color: Colors.black.withValues(alpha: 0.08),
+                              child: const Icon(Icons.person_rounded, size: 56),
+                            ),
+                          );
+                        }
                         return Image.file(
                           File(path),
                           width: 96,
@@ -343,6 +447,22 @@ class ProfilePage extends StatelessWidget {
                       );
                     }),
                   ),
+                  if (_isUploadingImage)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2.4),
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -357,7 +477,7 @@ class ProfilePage extends StatelessWidget {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: openImagePickerSheet,
+                          onTap: _isUploadingImage ? null : openImagePickerSheet,
                           borderRadius: BorderRadius.circular(10),
                           child: const Icon(
                             Icons.edit_rounded,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -271,8 +272,21 @@ class AuthController extends GetxController {
       Get.offAllNamed(AppRoutes.assessment);
     } on FirebaseAuthException catch (e) {
       AppSnackbar.show('Google sign-in failed', _firebaseMessage(e));
+    } on PlatformException catch (e) {
+      AppSnackbar.show('Google sign-in failed', _googlePlatformMessage(e));
     } catch (e) {
-      AppSnackbar.show('Google sign-in failed', 'Please try again.');
+      final msg = e.toString();
+      if (_shouldTryOffline(e)) {
+        AppSnackbar.show(
+          'Google sign-in failed',
+          'No internet connection. Please try again online.',
+        );
+      } else {
+        AppSnackbar.show(
+          'Google sign-in failed',
+          msg.length > 140 ? 'Please try again.' : msg,
+        );
+      }
     } finally {
       isLoading.value = false;
     }
@@ -399,6 +413,31 @@ class AuthController extends GetxController {
       default:
         return e.message ?? 'Something went wrong. Please try again.';
     }
+  }
+
+  static String _googlePlatformMessage(PlatformException e) {
+    final code = e.code.toLowerCase();
+    final text = (e.message ?? '').toLowerCase();
+
+    if (code.contains('10') ||
+        code.contains('developer_error') ||
+        text.contains('10') ||
+        text.contains('developer_error') ||
+        text.contains('api exception: 10')) {
+      return 'Google sign-in is misconfigured for this app build. '
+          'Add this build SHA fingerprint in Firebase (Android app), '
+          'download a fresh google-services.json, then rebuild.';
+    }
+
+    if (code.contains('network') || text.contains('network')) {
+      return 'Network error during Google sign-in. Check internet and try again.';
+    }
+
+    if (code.contains('sign_in_canceled') || text.contains('canceled')) {
+      return 'Google sign-in was cancelled.';
+    }
+
+    return e.message ?? 'Google sign-in could not be completed.';
   }
 }
 

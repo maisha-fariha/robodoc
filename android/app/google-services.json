@@ -14,11 +14,35 @@
       },
       "oauth_client": [
         {
+          "client_id": "148155478497-gkkb411iq5k95atg2sn15fv0dojrr2af.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.encoderit.robodoc",
+            "certificate_hash": "ad33a4f9928f16d373d189459e2a48143f0cab51"
+          }
+        },
+        {
+          "client_id": "148155478497-iu9io4ul6uebqj7qs5tgl8k244boksss.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.encoderit.robodoc",
+            "certificate_hash": "a5a964ccb4fde74a977c5eb961a619c6f320c8f4"
+          }
+        },
+        {
           "client_id": "148155478497-sh9mu6p2b2eqc2513s4hsoi2bv28hpug.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.encoderit.robodoc",
             "certificate_hash": "5bf1ffa005c5ff5471fb0a2bdcf2ca25d691c9b4"
+          }
+        },
+        {
+          "client_id": "148155478497-vm8n4op9vgls13711jk6udrq3hdchh7c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.encoderit.robodoc",
+            "certificate_hash": "fedd8987a0b0133730fbb052fe2eeb3479ca6db5"
           }
         },
         {
