@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gems_data_layer/gems_data_layer.dart' show DatabaseService;
 import 'package:get/get.dart';
 
+import '../controllers/auth_controller.dart';
 import '../models/assessment_result.dart';
 
 class AssessmentController extends GetxController {
@@ -10,6 +11,8 @@ class AssessmentController extends GetxController {
 
   static const String _boxName = 'robodoc_history';
   static const String _historyKey = 'assessment_history_v1';
+  static const String _profileBoxName = 'robodoc_profile';
+  static const String _profileKeyPrefix = 'profile_v1';
   static const int _maxHistoryItems = 50;
 
   final DatabaseService _databaseService;
@@ -19,11 +22,20 @@ class AssessmentController extends GetxController {
   final RxnString profileImagePath = RxnString();
   final Rxn<AssessmentResult> latestResult = Rxn<AssessmentResult>();
   final RxList<AssessmentHistoryItem> history = <AssessmentHistoryItem>[].obs;
+  Worker? _authScopeWorker;
+  String _activeProfileScope = 'guest';
 
   @override
   void onInit() {
     super.onInit();
+    _bindProfileToAuthScope();
     _restoreHistory();
+  }
+
+  @override
+  void onClose() {
+    _authScopeWorker?.dispose();
+    super.onClose();
   }
 
   void setFromAssessment({
@@ -36,10 +48,12 @@ class AssessmentController extends GetxController {
     if (bloodType != null) {
       this.bloodType.value = bloodType;
     }
+    _persistProfile();
   }
 
   void setProfileImagePath(String? path) {
     profileImagePath.value = (path?.trim().isNotEmpty ?? false) ? path!.trim() : null;
+    _persistProfile();
   }
 
   void setLatestResult(AssessmentResult result) {
@@ -119,6 +133,88 @@ class AssessmentController extends GetxController {
     } catch (_) {
       // ignore persistence errors for now, keep runtime history
     }
+  }
+
+  void _bindProfileToAuthScope() {
+    final auth = Get.find<AuthController>();
+
+    Future<void> restore() async {
+      final scope = _profileScopeForAuth(auth);
+      if (scope == _activeProfileScope) return;
+      _activeProfileScope = scope;
+      await _restoreProfile();
+    }
+
+    _authScopeWorker = everAll(
+      [auth.user, auth.localUser, auth.isOfflineSession],
+      (_) {
+        restore();
+      },
+    );
+
+    restore();
+  }
+
+  String _profileScopeForAuth(AuthController auth) {
+    final uid = auth.user.value?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      return 'uid:$uid';
+    }
+    final email = auth.localUser.value?.email.trim().toLowerCase();
+    if (email != null && email.isNotEmpty) {
+      return 'local:$email';
+    }
+    return 'guest';
+  }
+
+  String get _profileStorageKey => '$_profileKeyPrefix:$_activeProfileScope';
+
+  Future<void> _restoreProfile() async {
+    try {
+      await _databaseService.openBox(_profileBoxName);
+      final raw = _databaseService.get<Map<dynamic, dynamic>>(
+        _profileStorageKey,
+        boxName: _profileBoxName,
+      );
+      if (raw == null) {
+        _resetProfileFields();
+        return;
+      }
+      age.value = (raw['age'] as num?)?.toInt() ?? 0;
+      final sex = (raw['sexAtBirth'] as String?)?.trim();
+      sexAtBirth.value = (sex?.isNotEmpty ?? false) ? sex : null;
+      final blood = (raw['bloodType'] as String?)?.trim();
+      bloodType.value = (blood?.isNotEmpty ?? false) ? blood : null;
+      final imagePath = (raw['profileImagePath'] as String?)?.trim();
+      profileImagePath.value = (imagePath?.isNotEmpty ?? false) ? imagePath : null;
+    } catch (_) {
+      _resetProfileFields();
+    }
+  }
+
+  Future<void> _persistProfile() async {
+    try {
+      await _databaseService.openBox(_profileBoxName);
+      await _databaseService.save<Map<String, dynamic>>(
+        _profileStorageKey,
+        {
+          'age': age.value,
+          'sexAtBirth': sexAtBirth.value,
+          'bloodType': bloodType.value,
+          'profileImagePath': profileImagePath.value,
+        },
+        boxName: _profileBoxName,
+      );
+    } catch (_) {
+      // ignore profile persistence errors
+    }
+  }
+
+  void _resetProfileFields() {
+    age.value = 0;
+    sexAtBirth.value = null;
+    bloodType.value = null;
+    profileImagePath.value = null;
   }
 }
 

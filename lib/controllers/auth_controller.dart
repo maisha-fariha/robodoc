@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -83,11 +84,6 @@ class AuthController extends GetxController {
           localUser.value = u;
           isOfflineSession.value = true;
           Get.offAllNamed(AppRoutes.assessment);
-          AppSnackbar.show(
-            'Offline login',
-            'You are logged in using local data.',
-            isError: false,
-          );
           return;
         } on LocalAuthException catch (le) {
           AppSnackbar.show('Offline login failed', _localMessage(le));
@@ -108,11 +104,6 @@ class AuthController extends GetxController {
         localUser.value = u;
         isOfflineSession.value = true;
         Get.offAllNamed(AppRoutes.assessment);
-        AppSnackbar.show(
-          'Offline login',
-          'No internet. Logged in using local data.',
-          isError: false,
-        );
       } on LocalAuthException catch (le) {
         AppSnackbar.show('Offline login failed', _localMessage(le));
       } catch (_) {
@@ -130,11 +121,6 @@ class AuthController extends GetxController {
           localUser.value = u;
           isOfflineSession.value = true;
           Get.offAllNamed(AppRoutes.assessment);
-          AppSnackbar.show(
-            'Offline login',
-            'You are logged in using local data.',
-            isError: false,
-          );
           return;
         } on LocalAuthException catch (le) {
           AppSnackbar.show('Offline login failed', _localMessage(le));
@@ -180,9 +166,22 @@ class AuthController extends GetxController {
       // Firebase signs the user in automatically after sign-up.
       // Per UX: take them back to Login to sign in explicitly.
       await _auth.signOut();
+      await _showAuthSuccessSheet(
+        title: 'Register successful',
+        message: 'Your account has been registered successfully. Please sign in to continue.',
+        buttonLabel: 'Go to Login',
+      );
       Get.offAllNamed(AppRoutes.login);
-      AppSnackbar.show('Account created', 'Please sign in to continue.', isError: false);
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        await _showAuthSuccessSheet(
+          title: 'Already registered',
+          message: 'This email is already registered. Go to Login to continue.',
+          buttonLabel: 'Go to Login',
+        );
+        Get.offAllNamed(AppRoutes.login);
+        return;
+      }
       if (_shouldTryOffline(e)) {
         await _localReady;
         try {
@@ -191,12 +190,12 @@ class AuthController extends GetxController {
             email: email,
             password: password,
           );
-          Get.offAllNamed(AppRoutes.login);
-          AppSnackbar.show(
-            'Offline sign up',
-            'Account created locally. Sign in to continue.',
-            isError: false,
+          await _showAuthSuccessSheet(
+            title: 'Offline registration successful',
+            message: 'Your account has been registered locally. You can sign in now.',
+            buttonLabel: 'Go to Login',
           );
+          Get.offAllNamed(AppRoutes.login);
           return;
         } on LocalAuthException catch (le) {
           AppSnackbar.show('Offline sign up failed', _localMessage(le));
@@ -212,12 +211,12 @@ class AuthController extends GetxController {
           email: email,
           password: password,
         );
-        Get.offAllNamed(AppRoutes.login);
-        AppSnackbar.show(
-          'Offline sign up',
-          'No internet. Account created locally.',
-          isError: false,
+        await _showAuthSuccessSheet(
+          title: 'Offline registration successful',
+          message: 'No internet detected. Your account has been registered locally.',
+          buttonLabel: 'Go to Login',
         );
+        Get.offAllNamed(AppRoutes.login);
       } on LocalAuthException catch (le) {
         AppSnackbar.show('Offline sign up failed', _localMessage(le));
       }
@@ -230,12 +229,12 @@ class AuthController extends GetxController {
             email: email,
             password: password,
           );
-          Get.offAllNamed(AppRoutes.login);
-          AppSnackbar.show(
-            'Offline sign up',
-            'Account created locally. Sign in to continue.',
-            isError: false,
+          await _showAuthSuccessSheet(
+            title: 'Offline registration successful',
+            message: 'Your account has been registered locally. You can sign in now.',
+            buttonLabel: 'Go to Login',
           );
+          Get.offAllNamed(AppRoutes.login);
           return;
         } on LocalAuthException catch (le) {
           AppSnackbar.show('Offline sign up failed', _localMessage(le));
@@ -248,11 +247,17 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle({bool fromSignUp = false}) async {
     if (isLoading.value) return;
     isLoading.value = true;
     try {
       // Google sign-in requires network and can't be done offline.
+      // Force account chooser to avoid silent reuse of last signed Google account.
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Ignore chooser-prep failures and continue with sign-in.
+      }
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // User cancelled.
@@ -264,10 +269,44 @@ class AuthController extends GetxController {
         idToken: googleAuth.idToken,
       );
 
-      await _auth.signInWithCredential(credential);
-      user.value = _auth.currentUser;
+      final cred = await _auth.signInWithCredential(credential);
+      user.value = cred.user ?? _auth.currentUser;
       isOfflineSession.value = false;
       localUser.value = null;
+      final isNewGoogleUser = cred.additionalUserInfo?.isNewUser == true;
+
+      if (isNewGoogleUser) {
+        if (fromSignUp) {
+          await _auth.signOut();
+          user.value = null;
+          await _showAuthSuccessSheet(
+            title: 'Account created successfully',
+            message: 'Your account has been created successfully. Please go to Login.',
+            buttonLabel: 'Go to Login',
+          );
+          Get.offAllNamed(AppRoutes.login);
+          return;
+        }
+        await _showAuthSuccessSheet(
+          title: 'Account auto-created',
+          message: 'Your account has been auto created successfully.',
+          buttonLabel: 'Go to Diagnosis',
+        );
+        Get.offAllNamed(AppRoutes.assessment);
+        return;
+      }
+
+      if (fromSignUp) {
+        await _auth.signOut();
+        user.value = null;
+        await _showAuthSuccessSheet(
+          title: 'Already registered',
+          message: 'This Google account is already registered. Go to Login to continue.',
+          buttonLabel: 'Go to Login',
+        );
+        Get.offAllNamed(AppRoutes.login);
+        return;
+      }
 
       Get.offAllNamed(AppRoutes.assessment);
     } on FirebaseAuthException catch (e) {
@@ -405,7 +444,7 @@ class AuthController extends GetxController {
       case 'too-many-requests':
         return 'Too many attempts. Try again later.';
       case 'email-already-in-use':
-        return 'This email is already registered. Try signing in.';
+        return 'This email is already registered. Please log in.';
       case 'weak-password':
         return 'Password is too weak. Use at least 6 characters.';
       case 'operation-not-allowed':
@@ -438,6 +477,74 @@ class AuthController extends GetxController {
     }
 
     return e.message ?? 'Google sign-in could not be completed.';
+  }
+
+  Future<void> _showAuthSuccessSheet({
+    required String title,
+    required String message,
+    required String buttonLabel,
+  }) async {
+    await Get.bottomSheet<void>(
+      SafeArea(
+        top: false,
+        child: Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.check_circle_rounded, color: Colors.green),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Get.back<void>(),
+                    child: Text(
+                      buttonLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      isDismissible: false,
+      enableDrag: false,
+    );
   }
 }
 

@@ -335,7 +335,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     child: Obx(() {
                       final loading = auth.isLoading.value;
                       return OutlinedButton.icon(
-                        onPressed: loading ? null : () => auth.signInWithGoogle(),
+                        onPressed: loading
+                            ? null
+                            : () => auth.signInWithGoogle(fromSignUp: true),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black.withValues(alpha: 0.85),
                           side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
